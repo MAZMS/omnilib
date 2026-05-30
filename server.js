@@ -396,10 +396,10 @@ app.get('/tool/:slug', (req, res) => {
 
   if (tool) {
     const pricingLabel = { free: 'Free', freemium: 'Freemium', paid: 'Paid', 'open-source': 'Open Source' }[tool.pricing] || tool.pricing;
-    const metaTitle = `${tool.name} — AI Tool Review & Pricing | Great Library AI`;
+    const metaTitle = `${tool.name} — AI Tool Review & Pricing | Omnilib`;
     const metaDesc = `${tool.description} ${tool.pricingDetails ? tool.pricingDetails + '.' : ''} Pricing: ${pricingLabel}. Rating: ${tool.rating}/5.`.replace(/\s+/g, ' ').trim();
-    const ogImage = tool.logo && tool.logo.startsWith('http') ? tool.logo : (tool.logo ? `https://greatlibrary.ai${tool.logo}` : 'https://greatlibrary.ai/images/og-default.png');
-    const canonicalUrl = `https://greatlibrary.ai/tool/${tool.slug}`;
+    const ogImage = tool.logo && tool.logo.startsWith('http') ? tool.logo : (tool.logo ? `https://omnilib.app${tool.logo}` : 'https://omnilib.app/images/og-default.png');
+    const canonicalUrl = `https://omnilib.app/tool/${tool.slug}`;
 
     html = html.replace('{{TITLE}}', metaTitle);
     html = html.replace('{{DESCRIPTION}}', metaDesc);
@@ -436,8 +436,8 @@ app.get('/tool/:slug', (req, res) => {
       },
       publisher: {
         '@type': 'Organization',
-        name: 'Great Library AI',
-        url: 'https://greatlibrary.ai'
+        name: 'Omnilib',
+        url: 'https://omnilib.app'
       }
     };
     if (tool.tags && tool.tags.length > 0) {
@@ -445,11 +445,11 @@ app.get('/tool/:slug', (req, res) => {
     }
     html = html.replace('{{JSON_LD}}', JSON.stringify(jsonLd));
   } else {
-    html = html.replace('{{TITLE}}', 'Tool Not Found — Great Library AI');
+    html = html.replace('{{TITLE}}', 'Tool Not Found — Omnilib');
     html = html.replace('{{DESCRIPTION}}', 'This tool was not found.');
     html = html.replace('{{OG_TITLE}}', 'Tool Not Found');
     html = html.replace('{{OG_DESCRIPTION}}', 'This tool was not found.');
-    html = html.replace(/\{\{OG_IMAGE\}\}/g, 'https://greatlibrary.ai/images/og-default.png');
+    html = html.replace(/\{\{OG_IMAGE\}\}/g, 'https://omnilib.app/images/og-default.png');
     html = html.replace(/\{\{SLUG\}\}/g, '');
     html = html.replace('{{JSON_LD}}', '{}');
   }
@@ -469,11 +469,11 @@ app.get('/compare', (req, res) => {
 
   if (tools.length >= 2) {
     const names = tools.map(t => t.name).join(' vs ');
-    html = html.replace('{{TITLE}}', `${names} — Compare AI Tools | Great Library AI`);
+    html = html.replace('{{TITLE}}', `${names} — Compare AI Tools | Omnilib`);
     html = html.replace(/\{\{DESCRIPTION\}\}/g, `Compare ${names}: pricing, features, pros & cons, ratings. Find the best AI tool.`);
     html = html.replace('{{OG_TITLE}}', `${names} — AI Tool Comparison`);
   } else {
-    html = html.replace('{{TITLE}}', 'Compare AI Tools — Great Library AI');
+    html = html.replace('{{TITLE}}', 'Compare AI Tools — Omnilib');
     html = html.replace(/\{\{DESCRIPTION\}\}/g, 'Compare AI tools side by side. Features, pricing, pros, cons, and ratings.');
     html = html.replace('{{OG_TITLE}}', 'Compare AI Tools');
   }
@@ -491,7 +491,7 @@ app.get('/admin', (req, res) => {
 
 app.get('/sitemap.xml', (req, res) => {
   const data = readData();
-  const base = 'https://greatlibrary.ai';
+  const base = 'https://omnilib.app';
 
   let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
   xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
@@ -724,7 +724,7 @@ async function start() {
   }
 
   app.listen(PORT, () => {
-    console.log(`Great Library AI running on port ${PORT}`);
+    console.log(`Omnilib running on port ${PORT}`);
   });
 }
 

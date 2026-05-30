@@ -1,4 +1,4 @@
-# Great Library AI
+# Omnilib
 > The world's largest curated directory of AI tools. Search, compare, and discover 850+ AI SaaS products across chatbots, image generation, coding, video, audio, writing, productivity, research, design, and marketing.
 
 ## What this site offers
@@ -18,4 +18,4 @@
 Chatbots, Image Generation, Writing, Coding, Video, Audio & Music, Productivity, Research, Design, Marketing
 
 ## Contact
-Website: https://greatlibrary.ai
+Website: https://omnilib.app

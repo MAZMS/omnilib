@@ -1,6 +1,6 @@
-# Great Library AI — Rules for Claude Code
+# Omnilib — Rules for Claude Code
 
-Public AI tools directory at **greatlibrary.ai** with affiliate links.
+Public AI tools directory at **omnilib.app** with affiliate links.
 Users search and browse AI tools, click through affiliate links, owner earns commissions.
 
 ## The Operator
@@ -15,7 +15,7 @@ Maz (MAZMS). Solo founder. Works fast, thinks visually, delegates everything.
 ## Architecture
 
 ```
-GreatLibraryAI/
+omnilib/
 ├── server.js           # Express server — API routes, affiliate redirects, admin auth, SEO injection
 ├── data/
 │   └── tools.json      # All AI tool entries — the entire "database"
@@ -83,7 +83,7 @@ Each tool in `data/tools.json`:
 
 ## Railway Deployment
 
-- Domain: **greatlibrary.ai**
+- Domain: **omnilib.app**
 - Auto-deploys on push to `main`
 - Build: `npm install` → `npm start`
 - Check: `railway status`, `railway logs`

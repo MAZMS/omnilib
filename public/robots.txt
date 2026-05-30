@@ -16,4 +16,4 @@ Allow: /
 User-agent: CCBot
 Allow: /
 
-Sitemap: https://greatlibrary.ai/sitemap.xml
+Sitemap: https://omnilib.app/sitemap.xml

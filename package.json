@@ -1,7 +1,7 @@
 {
-  "name": "greatlibrary-ai",
+  "name": "omnilib",
   "version": "1.0.0",
-  "description": "The open library of AI tools — discover, compare, and access the best AI tools",
+  "description": "Omnilib — discover, compare, and access the best AI tools",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
