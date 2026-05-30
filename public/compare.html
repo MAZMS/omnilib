@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{TITLE}}</title>
+  <meta name="description" content="{{DESCRIPTION}}">
+  <link rel="canonical" href="https://greatlibrary.ai/compare">
+  <meta property="og:title" content="{{OG_TITLE}}">
+  <meta property="og:description" content="{{DESCRIPTION}}">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://greatlibrary.ai/compare">
+  <meta property="og:site_name" content="Great Library AI">
+  <meta name="ai-content-declaration" content="This is a curated directory of AI tools.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+  <link rel="stylesheet" href="/css/style.css?v=18">
+  <script>
+    (function(){var s=localStorage.getItem('theme');if(s==='dark'||(!s&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.setAttribute('data-theme','dark')}})();
+  </script>
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <a href="/" class="logo">
+        <span class="logo-icon">📚</span> Great Library AI
+      </a>
+      <nav class="nav">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/compare" class="nav-link active">Compare</a>
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+          <span class="theme-icon" id="theme-icon">🌙</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="compare-page" id="compare-page">
+      <div class="compare-selector">
+        <h1 class="compare-selector-title">Compare AI Tools</h1>
+        <p class="compare-selector-desc">Select up to 3 tools to compare side by side.</p>
+        <div class="compare-selected" id="compare-selected"></div>
+        <div class="compare-search-wrap">
+          <input type="text" class="compare-search" id="compare-search" placeholder="Search tools to add..." autocomplete="off">
+          <div class="compare-dropdown" id="compare-dropdown" style="display:none"></div>
+        </div>
+      </div>
+      <div id="compare-content"></div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <span class="logo"><span class="logo-icon">📚</span> Great Library AI</span>
+          <p>The open library of AI tools.<br>Curated with care.</p>
+        </div>
+        <div class="footer-links">
+          <a href="/">Home</a>
+          <a href="/#filters-section">Browse</a>
+          <a href="/compare">Compare</a>
+          <a href="/admin">Admin</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Great Library AI</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/compare.js?v=18"></script>
+</body>
+</html>

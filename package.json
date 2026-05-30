@@ -1,0 +1,26 @@
+{
+  "name": "greatlibrary-ai",
+  "version": "1.0.0",
+  "description": "The open library of AI tools — discover, compare, and access the best AI tools",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "ai",
+    "tools",
+    "directory",
+    "affiliate"
+  ],
+  "author": "MAZMS",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.0",
+    "multer": "^1.4.5-lts.1",
+    "pg": "^8.21.0"
+  },
+  "devDependencies": {
+    "puppeteer": "^25.1.0"
+  }
+}

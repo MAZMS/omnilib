@@ -1,0 +1,15 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "Great Library AI",
+  "name_for_model": "greatlibrary",
+  "description_for_human": "Search and discover 850+ AI tools across all categories.",
+  "description_for_model": "Search the Great Library AI directory of 850+ AI SaaS tools. Use the API at /api/tools with query parameters ?q= for search, ?category= for filtering. Each tool has name, description, pricing (free/freemium/paid/open-source), rating, category, tags, and URL. Categories: chatbots, image-generation, writing, coding, video, audio, productivity, research, design, marketing.",
+  "auth": { "type": "none" },
+  "api": {
+    "type": "openapi",
+    "url": "https://greatlibrary.ai/openapi.json"
+  },
+  "logo_url": "https://greatlibrary.ai/logo.png",
+  "contact_email": "hello@greatlibrary.ai",
+  "legal_info_url": "https://greatlibrary.ai"
+}

@@ -1,0 +1,21 @@
+# Great Library AI
+> The world's largest curated directory of AI tools. Search, compare, and discover 850+ AI SaaS products across chatbots, image generation, coding, video, audio, writing, productivity, research, design, and marketing.
+
+## What this site offers
+- Comprehensive directory of 850+ AI tools
+- Each tool has: name, description, pricing, rating, category, tags, screenshots
+- Tools are organized by category and searchable by name, description, or tag
+- Affiliate links for each tool at /go/{slug}
+- Tool detail pages at /tool/{slug}
+
+## API
+- GET /api/tools - List all tools (supports ?q=, ?category=, ?pricing=, ?tag=, ?sort=)
+- GET /api/tools/{slug} - Get single tool details
+- GET /api/categories - List all categories
+- GET /sitemap.xml - Full sitemap
+
+## Categories
+Chatbots, Image Generation, Writing, Coding, Video, Audio & Music, Productivity, Research, Design, Marketing
+
+## Contact
+Website: https://greatlibrary.ai

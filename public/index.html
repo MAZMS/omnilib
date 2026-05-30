@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Great Library AI — Discover the Best AI Tools</title>
+  <meta name="description" content="The open library of AI tools. Search, compare, and find the perfect AI tool for any task. Curated directory of 1000+ AI tools.">
+  <meta name="robots" content="index, follow">
+  <meta property="og:title" content="Great Library AI">
+  <meta property="og:description" content="The open library of AI tools. Search, compare, and find the perfect AI tool for any task.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://greatlibrary.ai">
+  <meta property="og:image" content="https://greatlibrary.ai/images/og-default.png">
+  <meta name="ai-content-declaration" content="This is a curated directory of AI tools.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+  <link rel="stylesheet" href="/css/style.css?v=18">
+  <script>
+    (function(){var s=localStorage.getItem('theme');if(s==='dark'||(!s&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.setAttribute('data-theme','dark')}})();
+  </script>
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <a href="/" class="logo">
+        <span class="logo-icon">📚</span> Great Library AI
+      </a>
+      <nav class="nav">
+        <a href="/" class="nav-link active">Home</a>
+        <a href="/compare" class="nav-link">Compare</a>
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+          <span class="theme-icon" id="theme-icon">🌙</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-badge">📚 The open library of AI</div>
+      <h1 class="hero-title">Find the perfect<br><span class="hero-gradient">AI tool</span> for anything</h1>
+      <p class="hero-subtitle">Search 1000+ curated AI tools. Compare features, pricing, and ratings — all in one place.</p>
+      <div class="search-wrap">
+        <div class="search-container">
+          <span class="search-icon">✨</span>
+          <input type="search" id="search" class="search-input" placeholder="Search tools or ask anything... e.g. 'best tool to remove audio noise'" autocomplete="off">
+          <kbd class="search-kbd">/</kbd>
+        </div>
+        <div class="search-ai-status" id="search-ai-status" style="display:none">✨ AI is finding the best tools...</div>
+      </div>
+      <div class="hero-stats" id="hero-stats"></div>
+    </section>
+
+    <!-- Featured Spotlight -->
+    <section class="homepage-section" id="featured-section">
+      <div class="section-header">
+        <h2 class="section-title">Featured Tools</h2>
+      </div>
+      <div class="scroll-row-wrap">
+        <button class="scroll-arrow scroll-arrow-left" data-dir="-1" aria-label="Scroll left">&larr;</button>
+        <div class="scroll-row" id="featured-grid"></div>
+        <button class="scroll-arrow scroll-arrow-right" data-dir="1" aria-label="Scroll right">&rarr;</button>
+      </div>
+    </section>
+
+    <!-- Trending Now -->
+    <section class="homepage-section" id="trending-section">
+      <div class="section-header">
+        <h2 class="section-title">Trending Now</h2>
+      </div>
+      <div class="scroll-row-wrap">
+        <button class="scroll-arrow scroll-arrow-left" data-dir="-1" aria-label="Scroll left">&larr;</button>
+        <div class="scroll-row" id="trending-grid"></div>
+        <button class="scroll-arrow scroll-arrow-right" data-dir="1" aria-label="Scroll right">&rarr;</button>
+      </div>
+    </section>
+
+    <!-- Browse by Use Case -->
+    <section class="homepage-section" id="usecases-section">
+      <div class="section-header">
+        <h2 class="section-title">Browse by Use Case</h2>
+      </div>
+      <div class="usecases-grid" id="usecases-grid"></div>
+    </section>
+
+    <!-- Popular Comparisons -->
+    <section class="homepage-section" id="comparisons-section">
+      <div class="section-header">
+        <h2 class="section-title">Popular Comparisons</h2>
+      </div>
+      <div class="comparisons-grid" id="comparisons-grid"></div>
+    </section>
+
+    <!-- New & Notable -->
+    <section class="homepage-section" id="recent-section">
+      <div class="section-header">
+        <h2 class="section-title">New & Notable</h2>
+      </div>
+      <div class="scroll-row-wrap">
+        <button class="scroll-arrow scroll-arrow-left" data-dir="-1" aria-label="Scroll left">&larr;</button>
+        <div class="scroll-row" id="recent-grid"></div>
+        <button class="scroll-arrow scroll-arrow-right" data-dir="1" aria-label="Scroll right">&rarr;</button>
+      </div>
+    </section>
+
+    <section class="filters" id="filters-section">
+      <h2 class="section-title">All Tools</h2>
+      <div class="filter-row" id="category-filters">
+        <!-- Populated by JS -->
+      </div>
+      <div class="filter-row filter-secondary">
+        <div class="filter-group">
+          <label class="filter-label">Pricing</label>
+          <div class="pill-group" id="pricing-filters">
+            <button class="pill active" data-pricing="">All</button>
+            <button class="pill" data-pricing="free">Free</button>
+            <button class="pill" data-pricing="freemium">Freemium</button>
+            <button class="pill" data-pricing="paid">Paid</button>
+            <button class="pill" data-pricing="open-source">Open Source</button>
+          </div>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Sort by</label>
+          <select id="sort-select" class="sort-select">
+            <option value="trending">Trending</option>
+            <option value="rating">Top Rated</option>
+            <option value="newest">Newest</option>
+            <option value="popular">Most Popular</option>
+            <option value="name">Name A-Z</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <section class="tools-section">
+      <div class="tools-count" id="tools-count"></div>
+      <div class="tools-grid" id="tools-grid">
+        <!-- Populated by JS -->
+      </div>
+      <div class="tools-empty" id="tools-empty" style="display:none;">
+        <p>No tools found. Try a different search or filter.</p>
+      </div>
+    </section>
+
+    <!-- Newsletter -->
+    <section class="newsletter-section">
+      <div class="newsletter-inner">
+        <h2 class="newsletter-title">Stay in the loop</h2>
+        <p class="newsletter-desc">Get the best new AI tools delivered to your inbox every week.</p>
+        <div class="newsletter-form" id="nl-form">
+          <input type="email" id="nl-email" class="newsletter-input" placeholder="you@email.com">
+          <button id="nl-btn" class="newsletter-btn">Subscribe</button>
+        </div>
+        <p id="nl-msg" style="display:none;font-size:13px;margin-top:12px"></p>
+        <script>
+        document.getElementById('nl-btn').addEventListener('click',function(){
+          var email=document.getElementById('nl-email').value.trim();
+          var btn=document.getElementById('nl-btn');
+          var msg=document.getElementById('nl-msg');
+          if(!email||!email.includes('@')){msg.style.display='block';msg.style.color='#ea580c';msg.textContent='Please enter a valid email.';return;}
+          btn.textContent='Subscribing...';btn.disabled=true;
+          fetch('/api/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email})})
+          .then(function(r){return r.json()}).then(function(d){
+            msg.style.display='block';
+            if(d.ok){
+              msg.style.color='#16a34a';
+              msg.textContent=d.already?'You\'re already subscribed!':'Thanks for subscribing! We\'ll keep you in the loop.';
+              document.getElementById('nl-email').value='';
+            }else{msg.style.color='#ea580c';msg.textContent=d.error||'Something went wrong.';}
+            btn.textContent='Subscribe';btn.disabled=false;
+          }).catch(function(){msg.style.display='block';msg.style.color='#ea580c';msg.textContent='Failed to connect.';btn.textContent='Subscribe';btn.disabled=false;});
+        });
+        document.getElementById('nl-email').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('nl-btn').click();});
+        </script>
+      </div>
+    </section>
+
+    <!-- Submit a Tool -->
+    <section class="submit-tool-section">
+      <h3 class="submit-tool-title">Have an AI tool?</h3>
+      <p class="submit-tool-desc">Get your tool featured in front of thousands of users.</p>
+      <button onclick="document.getElementById('submit-modal').style.display='flex'" class="submit-tool-btn" style="cursor:pointer">Submit your tool &rarr;</button>
+    </section>
+
+    <!-- Submit Tool Modal -->
+    <div id="submit-modal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);align-items:center;justify-content:center" onclick="if(event.target===this)this.style.display='none'">
+      <div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:16px;padding:32px;width:100%;max-width:520px;margin:20px;max-height:90vh;overflow-y:auto;scrollbar-width:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+          <h3 style="font-size:18px;font-weight:700">Submit Your AI Tool</h3>
+          <button onclick="document.getElementById('submit-modal').style.display='none'" style="background:none;border:none;font-size:24px;color:var(--text-muted);cursor:pointer">&times;</button>
+        </div>
+        <form id="submit-form" onsubmit="return submitTool(event)">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:4px">Tool Name *</label>
+              <input type="text" name="st-name" required maxlength="120" placeholder="e.g. My AI Tool" style="width:100%;padding:10px 12px;font-family:var(--font);font-size:13px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);outline:none">
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:4px">Website URL *</label>
+              <input type="url" name="st-url" required maxlength="500" placeholder="https://..." style="width:100%;padding:10px 12px;font-family:var(--font);font-size:13px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);outline:none">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:4px">Category</label>
+              <select name="st-category" style="width:100%;padding:10px 12px;font-family:var(--font);font-size:13px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);outline:none">
+                <option value="">Select category</option>
+                <option value="chatbots">Chatbots</option>
+                <option value="image-generation">Image Generation</option>
+                <option value="writing">Writing</option>
+                <option value="coding">Coding</option>
+                <option value="video">Video</option>
+                <option value="audio">Audio & Music</option>
+                <option value="productivity">Productivity</option>
+                <option value="research">Research</option>
+                <option value="design">Design</option>
+                <option value="marketing">Marketing</option>
+              </select>
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:4px">Pricing</label>
+              <select name="st-pricing" style="width:100%;padding:10px 12px;font-family:var(--font);font-size:13px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);outline:none">
+                <option value="">Select pricing</option>
+                <option value="free">Free</option>
+                <option value="freemium">Freemium</option>
+                <option value="paid">Paid</option>
+                <option value="open-source">Open Source</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-bottom:12px">
+            <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:4px">Description *</label>
+            <textarea name="st-desc" required minlength="10" maxlength="2000" rows="4" placeholder="What does your tool do? Who is it for?" style="width:100%;padding:10px 12px;font-family:var(--font);font-size:13px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);outline:none;resize:vertical"></textarea>
+          </div>
+          <div style="margin-bottom:20px">
+            <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:4px">Your Email *</label>
+            <input type="email" name="st-email" required maxlength="120" placeholder="you@company.com" style="width:100%;padding:10px 12px;font-family:var(--font);font-size:13px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);outline:none">
+          </div>
+          <button type="submit" id="st-submit" style="width:100%;padding:12px;font-family:var(--font);font-size:14px;font-weight:600;background:var(--text);color:var(--bg);border:none;border-radius:8px;cursor:pointer">Submit Tool</button>
+          <p style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:10px">We'll review your submission and get back to you.</p>
+        </form>
+        <div id="st-success" style="display:none;text-align:center;padding:30px 0">
+          <div style="font-size:40px;margin-bottom:10px">&#x1F389;</div>
+          <p style="font-size:16px;font-weight:700;margin-bottom:4px">Tool submitted!</p>
+          <p style="font-size:13px;color:var(--text-secondary)">We'll review it and add it to the library.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Floating Compare Bar -->
+  <div class="compare-bar" id="compare-bar" style="display:none">
+    <div class="compare-bar-tools" id="compare-bar-tools"></div>
+    <a href="/compare" class="compare-bar-btn" id="compare-bar-btn">Compare</a>
+    <button class="compare-bar-close" onclick="clearCompare()" aria-label="Clear">&times;</button>
+  </div>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <span class="logo"><span class="logo-icon">📚</span> Great Library AI</span>
+          <p>The open library of AI tools.<br>Curated with care.</p>
+        </div>
+        <div class="footer-links">
+          <a href="/">Home</a>
+          <a href="#filters-section">Browse</a>
+          <a href="/compare">Compare</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Great Library AI</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Feedback button + modal -->
+  <button id="feedback-btn" onclick="document.getElementById('feedback-modal').style.display='flex'" style="position:fixed;bottom:24px;left:24px;z-index:80;padding:10px 18px;font-family:var(--font);font-size:13px;font-weight:600;background:var(--text);color:var(--bg);border:none;border-radius:999px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,0.15);transition:all 200ms ease" onmouseenter="this.style.transform='scale(1.05)'" onmouseleave="this.style.transform='scale(1)'">Feedback</button>
+
+  <div id="feedback-modal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);align-items:center;justify-content:center">
+    <div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:16px;padding:32px;width:100%;max-width:440px;margin:20px" id="fb-inner">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <h3 style="font-size:18px;font-weight:700">Send Feedback</h3>
+        <button id="fb-close" style="background:none;border:none;font-size:24px;color:var(--text-muted);cursor:pointer">&times;</button>
+      </div>
+      <div id="feedback-form">
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap" id="fb-type-row"></div>
+        <textarea id="fb-message" placeholder="Tell us what you think..." maxlength="2000" style="width:100%;height:120px;padding:12px;font-family:var(--font);font-size:14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);outline:none;resize:vertical;margin-bottom:12px"></textarea>
+        <input type="email" id="fb-email" placeholder="Email (optional)" style="width:100%;padding:10px 12px;font-family:var(--font);font-size:13px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);outline:none;margin-bottom:16px">
+        <button id="fb-submit" style="width:100%;padding:12px;font-family:var(--font);font-size:14px;font-weight:600;background:var(--text);color:var(--bg);border:none;border-radius:8px;cursor:pointer">Send</button>
+      </div>
+      <div id="fb-success" style="display:none;text-align:center;padding:20px 0">
+        <div style="font-size:32px;margin-bottom:8px">&#x2705;</div>
+        <p style="font-weight:600">Thanks for your feedback!</p>
+      </div>
+    </div>
+  </div>
+  <script>
+  (function(){
+    var fbType='feedback';
+    var modal=document.getElementById('feedback-modal');
+    var inner=document.getElementById('fb-inner');
+    var row=document.getElementById('fb-type-row');
+    var types=['feedback','bug','feature'];
+    var labels=['Feedback','Bug Report','Feature Request'];
+
+    types.forEach(function(t,i){
+      var b=document.createElement('button');
+      b.textContent=labels[i];
+      b.style.cssText='flex:1;padding:8px;font-family:inherit;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:8px;cursor:pointer;'+(t===fbType?'background:var(--text);color:var(--bg)':'background:none;color:var(--text)');
+      b.addEventListener('click',function(){
+        fbType=t;
+        row.querySelectorAll('button').forEach(function(x){x.style.background='none';x.style.color='var(--text)';});
+        b.style.background='var(--text)';b.style.color='var(--bg)';
+      });
+      row.appendChild(b);
+    });
+
+    document.getElementById('feedback-btn').addEventListener('click',function(){modal.style.display='flex';});
+    document.getElementById('fb-close').addEventListener('click',function(){modal.style.display='none';});
+    modal.addEventListener('click',function(e){if(e.target===modal)modal.style.display='none';});
+
+    document.getElementById('fb-submit').addEventListener('click',function(){
+      var msg=document.getElementById('fb-message').value.trim();
+      var email=document.getElementById('fb-email').value.trim();
+      var btn=document.getElementById('fb-submit');
+      if(!msg||msg.length<3){alert('Please enter a message');return;}
+      btn.textContent='Sending...';btn.disabled=true;
+      fetch('/api/feedback',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:fbType,message:msg,email:email,page:location.pathname})})
+      .then(function(r){
+        if(r.ok){
+          document.getElementById('feedback-form').style.display='none';
+          document.getElementById('fb-success').style.display='block';
+          setTimeout(function(){
+            modal.style.display='none';
+            document.getElementById('feedback-form').style.display='';
+            document.getElementById('fb-success').style.display='none';
+            document.getElementById('fb-message').value='';
+            document.getElementById('fb-email').value='';
+            btn.textContent='Send';btn.disabled=false;
+          },2000);
+        }else{btn.textContent='Failed - try again';btn.disabled=false;}
+      }).catch(function(){btn.textContent='Failed - try again';btn.disabled=false;});
+    });
+  })();
+  </script>
+
+  <!-- Back to top -->
+  <button class="back-to-top" id="back-to-top" aria-label="Back to top">↑</button>
+
+  <!-- Command-K Search Overlay -->
+  <div class="cmdk-overlay" id="cmdk-overlay" style="display:none">
+    <div class="cmdk-modal">
+      <div class="cmdk-search-wrap">
+        <span class="cmdk-icon">⌘</span>
+        <input type="text" id="cmdk-input" class="cmdk-input" placeholder="Search 1000+ AI tools..." autocomplete="off" autofocus>
+        <kbd class="cmdk-esc">ESC</kbd>
+      </div>
+      <div class="cmdk-results" id="cmdk-results"></div>
+      <div class="cmdk-footer">
+        <span>↑↓ Navigate</span>
+        <span>↵ Open</span>
+        <span>ESC Close</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/app.js?v=18"></script>
+</body>
+</html>

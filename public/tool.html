@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{TITLE}}</title>
+  <meta name="description" content="{{DESCRIPTION}}">
+  <link rel="canonical" href="https://greatlibrary.ai/tool/{{SLUG}}">
+  <meta property="og:title" content="{{OG_TITLE}}">
+  <meta property="og:description" content="{{OG_DESCRIPTION}}">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://greatlibrary.ai/tool/{{SLUG}}">
+  <meta property="og:image" content="{{OG_IMAGE}}">
+  <meta property="og:site_name" content="Great Library AI">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="{{OG_TITLE}}">
+  <meta name="twitter:description" content="{{OG_DESCRIPTION}}">
+  <meta name="twitter:image" content="{{OG_IMAGE}}">
+  <meta name="ai-content-declaration" content="This is a curated directory of AI tools.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+  <link rel="stylesheet" href="/css/style.css?v=18">
+  <script type="application/ld+json">{{JSON_LD}}</script>
+  <script>
+    (function(){var s=localStorage.getItem('theme');if(s==='dark'||(!s&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.setAttribute('data-theme','dark')}})();
+  </script>
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <a href="/" class="logo">
+        <span class="logo-icon">📚</span> Great Library AI
+      </a>
+      <nav class="nav">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/compare" class="nav-link">Compare</a>
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+          <span class="theme-icon" id="theme-icon">🌙</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <article class="tool-detail" id="tool-detail">
+      <a href="/" class="back-link"><span class="back-arrow">&larr;</span> Back to all tools</a>
+      <div class="tool-loading" id="tool-loading">Loading...</div>
+    </article>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-bottom">
+        <p>&copy; 2026 Great Library AI. The open library of AI tools.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Theme toggle — must be inline to avoid emoji encoding issues in external JS
+    (function() {
+      var icon = document.getElementById('theme-icon');
+      var btn = document.getElementById('theme-toggle');
+      if (document.documentElement.getAttribute('data-theme') === 'dark') {
+        icon.textContent = '\u2600\uFE0F';
+      }
+      btn.onclick = function() {
+        var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        if (isDark) {
+          document.documentElement.removeAttribute('data-theme');
+          icon.textContent = '\uD83C\uDF19';
+          localStorage.setItem('theme', 'light');
+        } else {
+          document.documentElement.setAttribute('data-theme', 'dark');
+          icon.textContent = '\u2600\uFE0F';
+          localStorage.setItem('theme', 'dark');
+        }
+      };
+    })();
+  </script>
+  <!-- Command-K Search Overlay -->
+  <div class="cmdk-overlay" id="cmdk-overlay" style="display:none">
+    <div class="cmdk-modal">
+      <div class="cmdk-search-wrap">
+        <span class="cmdk-icon">⌘</span>
+        <input type="text" id="cmdk-input" class="cmdk-input" placeholder="Search 847+ AI tools..." autocomplete="off" autofocus>
+        <kbd class="cmdk-esc">ESC</kbd>
+      </div>
+      <div class="cmdk-results" id="cmdk-results"></div>
+      <div class="cmdk-footer">
+        <span>↑↓ Navigate</span>
+        <span>↵ Open</span>
+        <span>ESC Close</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // Command-K for tool detail page
+  (function() {
+    var overlay = document.getElementById('cmdk-overlay');
+    var input = document.getElementById('cmdk-input');
+    var results = document.getElementById('cmdk-results');
+    var selectedIndex = -1;
+    var currentResults = [];
+    var allTools = [];
+    var categories = [];
+    var loaded = false;
+
+    function ensureData(cb) {
+      if (loaded) return cb();
+      Promise.all([fetch('/api/tools'), fetch('/api/categories')])
+        .then(function(r) { return Promise.all([r[0].json(), r[1].json()]); })
+        .then(function(d) { allTools = d[0]; categories = d[1]; loaded = true; cb(); });
+    }
+
+    document.addEventListener('keydown', function(e) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        overlay.style.display = 'flex';
+        input.value = '';
+        input.focus();
+        selectedIndex = -1;
+        ensureData(function() { renderResults(''); });
+      }
+      if (e.key === 'Escape' && overlay.style.display === 'flex') {
+        overlay.style.display = 'none';
+      }
+    });
+
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) overlay.style.display = 'none';
+    });
+
+    input.addEventListener('input', function() {
+      selectedIndex = -1;
+      ensureData(function() { renderResults(input.value.trim()); });
+    });
+
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        selectedIndex = Math.min(selectedIndex + 1, currentResults.length - 1);
+        updateSelection();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        selectedIndex = Math.max(selectedIndex - 1, 0);
+        updateSelection();
+      } else if (e.key === 'Enter' && selectedIndex >= 0 && currentResults[selectedIndex]) {
+        window.location.href = '/tool/' + currentResults[selectedIndex].slug;
+      }
+    });
+
+    function fmtPricing(p) {
+      var m = { free: 'Free', freemium: 'Freemium', paid: 'Paid', 'open-source': 'Open Source' };
+      return m[p] || p;
+    }
+
+    function renderResults(query) {
+      if (!query) {
+        currentResults = allTools.filter(function(t) { return t.trendingScore >= 80; })
+          .sort(function(a, b) { return (b.trendingScore || 0) - (a.trendingScore || 0); }).slice(0, 8);
+        results.innerHTML = '<div class="cmdk-section-label">\uD83D\uDD25 Trending</div>' +
+          currentResults.map(function(t, i) { return renderItem(t, i); }).join('');
+        return;
+      }
+      var q = query.toLowerCase();
+      var scored = allTools.map(function(t) {
+        var score = 0;
+        var name = t.name.toLowerCase();
+        var desc = t.description.toLowerCase();
+        if (name === q) score += 100;
+        else if (name.startsWith(q)) score += 80;
+        else if (name.includes(q)) score += 60;
+        if (desc.includes(q)) score += 30;
+        if (t.tags && t.tags.some(function(tag) { return tag.toLowerCase().includes(q); })) score += 40;
+        if (t.category && t.category.toLowerCase().includes(q)) score += 35;
+        score += (t.rating || 0) * 2;
+        score += (t.trendingScore || 0) * 0.05;
+        return { tool: t, score: score };
+      }).filter(function(s) { return s.score > 0; })
+        .sort(function(a, b) { return b.score - a.score; }).slice(0, 8);
+
+      currentResults = scored.map(function(s) { return s.tool; });
+      if (currentResults.length === 0) {
+        results.innerHTML = '<div class="cmdk-empty">No tools found for "' + query + '"</div>';
+        return;
+      }
+      var html = '<div class="cmdk-section-label">Results</div>' +
+        currentResults.map(function(t, i) { return renderItem(t, i); }).join('');
+      if (query.split(' ').length >= 3) {
+        html += '<div class="cmdk-ai-divider"><button class="cmdk-ai-btn" onclick="cmdkAiSearch(\'' + query.replace(/'/g, "\\'") + '\')">\u2728 Ask AI to find the best tool</button></div>';
+      }
+      results.innerHTML = html;
+    }
+
+    function renderItem(t, index) {
+      var catObj = categories.find(function(c) { return c.id === t.category; });
+      var catIcon = catObj ? catObj.icon : '\uD83E\uDD16';
+      return '<a href="/tool/' + t.slug + '" class="cmdk-item" data-index="' + index + '">' +
+        '<div class="cmdk-item-logo">' + (t.logo ? '<img src="' + t.logo + '" alt="">' : catIcon) + '</div>' +
+        '<div class="cmdk-item-info">' +
+          '<span class="cmdk-item-name">' + t.name + '</span>' +
+          '<span class="cmdk-item-desc">' + t.description + '</span>' +
+        '</div>' +
+        '<div class="cmdk-item-meta">' +
+          '<span class="pricing-badge ' + t.pricing + '">' + fmtPricing(t.pricing) + '</span>' +
+        '</div>' +
+      '</a>';
+    }
+
+    function updateSelection() {
+      document.querySelectorAll('.cmdk-item').forEach(function(el, i) {
+        el.classList.toggle('cmdk-selected', i === selectedIndex);
+        if (i === selectedIndex) el.scrollIntoView({ block: 'nearest' });
+      });
+    }
+
+    // AI search for tool page
+    window.cmdkAiSearch = function(query) {
+      results.innerHTML = '<div class="cmdk-loading">\u2728 AI is thinking...</div>';
+      fetch('/api/ai-search?q=' + encodeURIComponent(query))
+        .then(function(r) { return r.json(); })
+        .then(function(tools) {
+          if (tools.length === 0) {
+            results.innerHTML = '<div class="cmdk-empty">AI couldn\'t find a match. Try different words.</div>';
+            return;
+          }
+          var catMap = {};
+          categories.forEach(function(c) { catMap[c.id] = c.icon; });
+          results.innerHTML = '<div class="cmdk-section-label">\u2728 AI Recommendations</div>' +
+            tools.map(function(t) {
+              var icon = catMap[t.category] || '\uD83E\uDD16';
+              return '<a href="/tool/' + t.slug + '" class="cmdk-item">' +
+                '<div class="cmdk-item-logo">' + (t.logo ? '<img src="' + t.logo + '" alt="">' : icon) + '</div>' +
+                '<div class="cmdk-item-info">' +
+                  '<span class="cmdk-item-name">' + t.name + '</span>' +
+                  '<span class="cmdk-item-desc">' + t.description + '</span>' +
+                '</div>' +
+                '<div class="cmdk-item-meta"><span class="pricing-badge ' + t.pricing + '">' + fmtPricing(t.pricing) + '</span></div>' +
+              '</a>';
+            }).join('');
+        })
+        .catch(function() {
+          results.innerHTML = '<div class="cmdk-empty">AI search unavailable. Try regular search.</div>';
+        });
+    };
+  })();
+  </script>
+  <script src="/js/tool.js?v=18"></script>
+</body>
+</html>

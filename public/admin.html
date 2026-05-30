@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Great Library AI</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+  <link rel="stylesheet" href="/css/style.css?v=18">
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <a href="/" class="logo">
+        <span class="logo-icon">📚</span> Great Library AI
+      </a>
+      <nav class="nav">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/admin" class="nav-link active">Admin</a>
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+          <span class="theme-icon" id="theme-icon">🌙</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- Auth gate -->
+    <div class="admin-auth" id="admin-auth">
+      <h2>Admin Access</h2>
+      <input type="password" id="admin-key-input" class="search-input" placeholder="Enter admin key..." style="max-width:400px;">
+      <button id="admin-login-btn" class="btn btn-primary" style="margin-top:12px;">Login</button>
+    </div>
+
+    <!-- Admin panel (hidden until auth) -->
+    <div class="admin-panel" id="admin-panel" style="display:none;">
+
+      <!-- Tabs -->
+      <div class="admin-tabs">
+        <button class="admin-tab active" data-tab="tools">Tools</button>
+        <button class="admin-tab" data-tab="subscribers">Subscribers <span id="subs-count-badge" style="background:#16a34a;color:#fff;font-size:10px;padding:1px 6px;border-radius:999px;margin-left:4px"></span></button>
+        <button class="admin-tab" data-tab="submissions">Submissions <span id="submissions-badge" style="display:none;background:#7c3aed;color:#fff;font-size:10px;padding:1px 6px;border-radius:999px;margin-left:4px"></span></button>
+        <button class="admin-tab" data-tab="feedback">Feedback <span id="feedback-badge" style="display:none;background:#ea580c;color:#fff;font-size:10px;padding:1px 6px;border-radius:999px;margin-left:4px"></span></button>
+        <button class="admin-tab" data-tab="traffic">Site Traffic</button>
+        <button class="admin-tab" data-tab="ai-usage">AI Usage</button>
+        <button class="admin-tab" data-tab="analytics">Analytics</button>
+      </div>
+
+      <!-- Tab: Subscribers -->
+      <div class="admin-tab-content" id="tab-subscribers" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <h2>Newsletter Subscribers</h2>
+          <span id="subs-total" style="font-size:13px;color:#888"></span>
+        </div>
+        <div id="subscribers-list"></div>
+      </div>
+
+      <!-- Tab: Submissions -->
+      <div class="admin-tab-content" id="tab-submissions" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <h2>Tool Submissions</h2>
+          <div style="display:flex;gap:8px" id="sub-filters">
+            <button onclick="filterSubs('')" style="padding:6px 14px;font-family:var(--font);font-size:12px;font-weight:600;background:#f5f5f5;color:#0a0a0a;border:none;border-radius:6px;cursor:pointer">All</button>
+            <button onclick="filterSubs('new')" style="padding:6px 14px;font-family:var(--font);font-size:12px;font-weight:600;background:none;color:#888;border:1px solid #333;border-radius:6px;cursor:pointer">New</button>
+            <button onclick="filterSubs('approved')" style="padding:6px 14px;font-family:var(--font);font-size:12px;font-weight:600;background:none;color:#888;border:1px solid #333;border-radius:6px;cursor:pointer">Approved</button>
+            <button onclick="filterSubs('rejected')" style="padding:6px 14px;font-family:var(--font);font-size:12px;font-weight:600;background:none;color:#888;border:1px solid #333;border-radius:6px;cursor:pointer">Rejected</button>
+          </div>
+        </div>
+        <div id="submissions-list"></div>
+      </div>
+
+      <!-- Tab: Feedback -->
+      <div class="admin-tab-content" id="tab-feedback" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <h2>Feedback & Bug Reports</h2>
+          <div style="display:flex;gap:8px" id="feedback-filters">
+            <button onclick="filterFeedback('')" style="padding:6px 14px;font-family:var(--font);font-size:12px;font-weight:600;background:#f5f5f5;color:#0a0a0a;border:none;border-radius:6px;cursor:pointer">All</button>
+            <button onclick="filterFeedback('feedback')" style="padding:6px 14px;font-family:var(--font);font-size:12px;font-weight:600;background:none;color:#888;border:1px solid #333;border-radius:6px;cursor:pointer">Feedback</button>
+            <button onclick="filterFeedback('bug')" style="padding:6px 14px;font-family:var(--font);font-size:12px;font-weight:600;background:none;color:#888;border:1px solid #333;border-radius:6px;cursor:pointer">Bugs</button>
+            <button onclick="filterFeedback('feature')" style="padding:6px 14px;font-family:var(--font);font-size:12px;font-weight:600;background:none;color:#888;border:1px solid #333;border-radius:6px;cursor:pointer">Features</button>
+          </div>
+        </div>
+        <div id="feedback-list"></div>
+      </div>
+
+      <!-- Tab: Tools -->
+      <div class="admin-tab-content" id="tab-tools">
+        <div class="admin-header">
+          <h2>Manage AI Tools</h2>
+          <button id="add-tool-btn" class="btn btn-primary">+ Add Tool</button>
+        </div>
+
+        <div class="admin-stats" id="admin-stats"></div>
+
+        <!-- Search & Filters -->
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:20px;flex-wrap:wrap;padding:16px;background:#141414;border:1px solid #252525;border-radius:12px">
+          <div style="flex:1;min-width:220px;position:relative">
+            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;opacity:0.4;pointer-events:none">&#x1F50D;</span>
+            <input type="text" id="admin-search" placeholder="Search by name, slug, or tag..." autocomplete="off"
+              style="width:100%;padding:10px 14px 10px 38px;font-family:var(--font);font-size:13px;border:1px solid #333;border-radius:8px;background:#1a1a1a;color:#f5f5f5;outline:none">
+          </div>
+          <select id="admin-cat-filter" style="padding:10px 14px;font-family:var(--font);font-size:13px;border:1px solid #333;border-radius:8px;background:#1a1a1a;color:#f5f5f5;outline:none;cursor:pointer">
+            <option value="">All Categories</option>
+          </select>
+          <select id="admin-pricing-filter" style="padding:10px 14px;font-family:var(--font);font-size:13px;border:1px solid #333;border-radius:8px;background:#1a1a1a;color:#f5f5f5;outline:none;cursor:pointer">
+            <option value="">All Pricing</option>
+            <option value="free">Free</option>
+            <option value="freemium">Freemium</option>
+            <option value="paid">Paid</option>
+            <option value="open-source">Open Source</option>
+          </select>
+          <button onclick="document.getElementById('admin-search').value='';document.getElementById('admin-cat-filter').value='';document.getElementById('admin-pricing-filter').value='';tableSearch='';tableCatFilter='';tablePricingFilter='';tablePage=1;renderTable()"
+            style="padding:10px 16px;font-family:var(--font);font-size:12px;font-weight:600;border:1px solid #333;border-radius:8px;background:none;color:#888;cursor:pointer">Clear</button>
+          <span id="admin-result-count" style="font-size:12px;color:#888;padding:8px 14px;background:#1a1a1a;border-radius:8px;border:1px solid #333;white-space:nowrap"></span>
+        </div>
+
+        <table class="admin-table" id="admin-table">
+          <thead>
+            <tr>
+              <th class="sortable" data-sort="name">Name</th>
+              <th class="sortable" data-sort="category">Category</th>
+              <th class="sortable" data-sort="pricing">Pricing</th>
+              <th class="sortable" data-sort="rating">Rating</th>
+              <th class="sortable" data-sort="clicks">Clicks</th>
+              <th class="sortable" data-sort="featured">Featured</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="admin-table-body"></tbody>
+        </table>
+
+        <div class="admin-pagination" id="admin-pagination"></div>
+      </div>
+
+      <!-- Tab: Site Traffic -->
+      <div class="admin-tab-content" id="tab-traffic" style="display:none;">
+        <div class="admin-stats" id="traffic-stats"></div>
+
+        <!-- Chart -->
+        <div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius);padding:24px;margin-top:24px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;gap:12px;flex-wrap:wrap">
+            <div id="chart-period-pills" style="display:inline-flex;background:#1a1a1a;border-radius:8px;padding:3px;border:1px solid #333">
+              <button onclick="setPeriod(7,this)" style="padding:6px 14px;font-family:var(--font);font-size:12px;font-weight:600;background:#f5f5f5;color:#0a0a0a;border:none;border-radius:6px;cursor:pointer">7D</button>
+              <button onclick="setPeriod(30,this)" style="padding:6px 14px;font-family:var(--font);font-size:12px;font-weight:600;background:none;color:#888;border:none;border-radius:6px;cursor:pointer">30D</button>
+              <button onclick="setPeriod(90,this)" style="padding:6px 14px;font-family:var(--font);font-size:12px;font-weight:600;background:none;color:#888;border:none;border-radius:6px;cursor:pointer">90D</button>
+              <button onclick="setPeriod('all',this)" style="padding:6px 14px;font-family:var(--font);font-size:12px;font-weight:600;background:none;color:#888;border:none;border-radius:6px;cursor:pointer">All</button>
+            </div>
+            <div id="chart-metric-pills" style="display:inline-flex;background:#1a1a1a;border-radius:8px;padding:3px;border:1px solid #333">
+              <button onclick="setMetric('views',this)" style="padding:6px 14px;font-family:var(--font);font-size:12px;font-weight:600;background:#f5f5f5;color:#0a0a0a;border:none;border-radius:6px;cursor:pointer">Views</button>
+              <button onclick="setMetric('toolViews',this)" style="padding:6px 14px;font-family:var(--font);font-size:12px;font-weight:600;background:none;color:#888;border:none;border-radius:6px;cursor:pointer">Tool Views</button>
+              <button onclick="setMetric('affiliateClicks',this)" style="padding:6px 14px;font-family:var(--font);font-size:12px;font-weight:600;background:none;color:#888;border:none;border-radius:6px;cursor:pointer">Clicks</button>
+              <button onclick="setMetric('searches',this)" style="padding:6px 14px;font-family:var(--font);font-size:12px;font-weight:600;background:none;color:#888;border:none;border-radius:6px;cursor:pointer">Searches</button>
+            </div>
+          </div>
+          <div id="chart-area"></div>
+        </div>
+
+        <!-- Bottom grid -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
+          <div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius);padding:24px">
+            <h3 style="font-size:14px;font-weight:700;margin-bottom:16px">Conversion Rates</h3>
+            <div id="traffic-rates"></div>
+          </div>
+          <div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius);padding:24px">
+            <h3 style="font-size:14px;font-weight:700;margin-bottom:16px">Most Viewed Tools (Today)</h3>
+            <div id="traffic-top-tools"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: AI Usage -->
+      <div class="admin-tab-content" id="tab-ai-usage" style="display:none;">
+        <h2 style="margin-bottom:24px;">AI Token Usage</h2>
+        <div class="admin-stats" id="ai-usage-stats"></div>
+
+        <!-- Budget bars -->
+        <div class="usage-budgets" id="usage-budgets"></div>
+
+        <!-- Daily history -->
+        <h3 style="margin:32px 0 16px;">Daily History</h3>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Requests</th>
+              <th>Prompt Tokens</th>
+              <th>Completion Tokens</th>
+              <th>Total Tokens</th>
+            </tr>
+          </thead>
+          <tbody id="ai-usage-table"></tbody>
+        </table>
+
+        <!-- Recent queries -->
+        <h3 style="margin:32px 0 16px;">Recent Queries</h3>
+        <div id="ai-usage-queries"></div>
+      </div>
+
+      <!-- Tab: Analytics -->
+      <div class="admin-tab-content" id="tab-analytics" style="display:none;">
+        <div class="admin-stats" id="analytics-stats"></div>
+
+        <!-- Full-width charts -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px">
+          <div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius);padding:24px">
+            <h3 style="font-size:14px;font-weight:700;margin-bottom:20px">Tools by Category</h3>
+            <div id="analytics-categories"></div>
+          </div>
+          <div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius);padding:24px">
+            <h3 style="font-size:14px;font-weight:700;margin-bottom:20px">Tools by Pricing</h3>
+            <div id="analytics-pricing"></div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
+          <!-- Top Clicked -->
+          <div style="background:#141414;border:1px solid #252525;border-radius:12px;padding:20px;display:flex;flex-direction:column">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <h3 style="font-size:14px;font-weight:700">Top Clicked Tools</h3>
+              <span id="clicks-count" style="font-size:11px;color:#888"></span>
+            </div>
+            <div style="position:relative;margin-bottom:12px">
+              <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;opacity:0.4">&#x1F50D;</span>
+              <input type="text" id="clicks-search" placeholder="Search..." oninput="filterClicksList()" style="width:100%;padding:8px 12px 8px 32px;font-family:var(--font);font-size:12px;border:1px solid #333;border-radius:8px;background:#1a1a1a;color:#f5f5f5;outline:none">
+            </div>
+            <div id="analytics-top-clicks-wrap" style="flex:1;max-height:500px;overflow-y:auto;scrollbar-width:none;position:relative;scroll-behavior:smooth">
+              <div id="analytics-top-clicks"></div>
+            </div>
+            <div style="display:flex;justify-content:center;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid #252525">
+              <button onclick="document.getElementById('analytics-top-clicks-wrap').scrollTop=0" style="padding:4px 14px;font-family:var(--font);font-size:11px;font-weight:600;border:1px solid #333;border-radius:6px;background:none;color:#888;cursor:pointer">&#x2191; Top</button>
+              <button onclick="document.getElementById('analytics-top-clicks-wrap').scrollTop=99999" style="padding:4px 14px;font-family:var(--font);font-size:11px;font-weight:600;border:1px solid #333;border-radius:6px;background:none;color:#888;cursor:pointer">&#x2193; Bottom</button>
+            </div>
+          </div>
+          <!-- Top Rated -->
+          <div style="background:#141414;border:1px solid #252525;border-radius:12px;padding:20px;display:flex;flex-direction:column">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <h3 style="font-size:14px;font-weight:700">Top Rated Tools</h3>
+              <span id="rated-count" style="font-size:11px;color:#888"></span>
+            </div>
+            <div style="position:relative;margin-bottom:12px">
+              <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;opacity:0.4">&#x1F50D;</span>
+              <input type="text" id="rated-search" placeholder="Search..." oninput="filterRatedList()" style="width:100%;padding:8px 12px 8px 32px;font-family:var(--font);font-size:12px;border:1px solid #333;border-radius:8px;background:#1a1a1a;color:#f5f5f5;outline:none">
+            </div>
+            <div id="analytics-top-rated-wrap" style="flex:1;max-height:500px;overflow-y:auto;scrollbar-width:none;position:relative;scroll-behavior:smooth">
+              <div id="analytics-top-rated"></div>
+            </div>
+            <div style="display:flex;justify-content:center;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid #252525">
+              <button onclick="document.getElementById('analytics-top-rated-wrap').scrollTop=0" style="padding:4px 14px;font-family:var(--font);font-size:11px;font-weight:600;border:1px solid #333;border-radius:6px;background:none;color:#888;cursor:pointer">&#x2191; Top</button>
+              <button onclick="document.getElementById('analytics-top-rated-wrap').scrollTop=99999" style="padding:4px 14px;font-family:var(--font);font-size:11px;font-weight:600;border:1px solid #333;border-radius:6px;background:none;color:#888;cursor:pointer">&#x2193; Bottom</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add/Edit modal -->
+    <div class="modal-overlay" id="modal-overlay" style="display:none;">
+      <div class="modal">
+        <div class="modal-header">
+          <h3 id="modal-title">Add Tool</h3>
+          <button class="modal-close" id="modal-close">&times;</button>
+        </div>
+        <form id="tool-form" class="tool-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Name *</label>
+              <input type="text" name="name" required>
+            </div>
+            <div class="form-group">
+              <label>Slug *</label>
+              <input type="text" name="slug" required pattern="[a-z0-9-]+">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Short Description</label>
+            <input type="text" name="description" maxlength="120">
+          </div>
+          <div class="form-group">
+            <label>Long Description</label>
+            <textarea name="longDescription" rows="4"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>URL</label>
+              <input type="url" name="url">
+            </div>
+            <div class="form-group">
+              <label>Affiliate URL</label>
+              <input type="url" name="affiliateUrl">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Category</label>
+              <select name="category" id="form-category"></select>
+            </div>
+            <div class="form-group">
+              <label>Pricing</label>
+              <select name="pricing">
+                <option value="free">Free</option>
+                <option value="freemium">Freemium</option>
+                <option value="paid">Paid</option>
+                <option value="open-source">Open Source</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Pricing Details</label>
+            <input type="text" name="pricingDetails">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Tags (comma-separated)</label>
+              <input type="text" name="tags" placeholder="chatbot, writing, coding">
+            </div>
+            <div class="form-group">
+              <label>Rating (0-5)</label>
+              <input type="number" name="rating" min="0" max="5" step="0.1">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Logo URL</label>
+            <input type="text" name="logo">
+          </div>
+          <div class="form-group">
+            <label>
+              <input type="checkbox" name="featured"> Featured
+            </label>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="modal-cancel">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="form-submit-btn">Add Tool</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/admin.js?v=18"></script>
+</body>
+</html>
