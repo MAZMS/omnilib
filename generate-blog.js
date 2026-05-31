@@ -25,53 +25,71 @@ function getPool() {
   return pool;
 }
 
-// --- Generate featured image via DALL-E ---
+// --- Generate featured image via OpenAI ---
 
 async function generateImage(query) {
   const key = process.env.OPENAI_API_KEY;
   if (!key) return '';
 
-  try {
-    const prompt = `A professional, modern blog header image for a tech article about: ${query}. Clean, editorial style. No text or words in the image. Photorealistic, high quality, wide landscape format.`;
-    const res = await fetch('https://api.openai.com/v1/images/generations', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-      body: JSON.stringify({
-        model: 'dall-e-3',
-        prompt,
-        n: 1,
-        size: '1792x1024',
-        quality: 'standard'
-      })
-    });
-    if (!res.ok) {
-      console.log(`  DALL-E error ${res.status}, skipping image`);
-      return '';
+  // Try models in order of preference
+  const attempts = [
+    { model: 'gpt-image-1', size: '1536x1024' },
+    { model: 'dall-e-3', size: '1792x1024', quality: 'standard' },
+    { model: 'dall-e-2', size: '1024x1024' },
+  ];
+
+  const prompt = `A professional blog header photo for a tech article about: ${query}. Modern, clean, editorial style. No text or words in the image. High quality.`;
+
+  for (const attempt of attempts) {
+    try {
+      const body = { model: attempt.model, prompt, n: 1, size: attempt.size };
+      if (attempt.quality) body.quality = attempt.quality;
+
+      const res = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+        body: JSON.stringify(body)
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.log(`  ${attempt.model} error ${res.status}: ${errText.slice(0, 150)}`);
+        continue;
+      }
+
+      const data = await res.json();
+      // gpt-image-1 returns b64_json, dall-e returns url
+      let imageUrl = data.data?.[0]?.url;
+      let buffer;
+
+      if (imageUrl) {
+        const imgRes = await fetch(imageUrl);
+        if (!imgRes.ok) continue;
+        buffer = Buffer.from(await imgRes.arrayBuffer());
+      } else if (data.data?.[0]?.b64_json) {
+        buffer = Buffer.from(data.data[0].b64_json, 'base64');
+      } else {
+        continue;
+      }
+
+      const fs = require('fs');
+      const path = require('path');
+      const dir = path.join(__dirname, 'public', 'images', 'blog');
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+      const ext = attempt.model === 'gpt-image-1' ? 'png' : 'png';
+      const filename = `blog-${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
+      fs.writeFileSync(path.join(dir, filename), buffer);
+
+      console.log(`  Image saved (${attempt.model}): /images/blog/${filename}`);
+      return `/images/blog/${filename}`;
+    } catch (err) {
+      console.log(`  ${attempt.model} failed: ${err.message}`);
     }
-    const data = await res.json();
-    const imageUrl = data.data?.[0]?.url;
-    if (!imageUrl) return '';
-
-    // DALL-E URLs expire — download and save locally
-    const imgRes = await fetch(imageUrl);
-    if (!imgRes.ok) return '';
-    const buffer = Buffer.from(await imgRes.arrayBuffer());
-
-    const fs = require('fs');
-    const path = require('path');
-    const dir = path.join(__dirname, 'public', 'images', 'blog');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-
-    const filename = `blog-${Date.now()}-${Math.random().toString(36).slice(2, 6)}.png`;
-    const filePath = path.join(dir, filename);
-    fs.writeFileSync(filePath, buffer);
-
-    console.log(`  Image saved: /images/blog/${filename}`);
-    return `/images/blog/${filename}`;
-  } catch (err) {
-    console.log(`  Image generation failed: ${err.message}`);
-    return '';
   }
+
+  console.log('  All image models failed, no image');
+  return '';
 }
 
 // --- RSS News Fetching ---
