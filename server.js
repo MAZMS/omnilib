@@ -533,7 +533,10 @@ app.get('/api/blog/ai-search', rateLimit('blog-ai', 10, 60), async (req, res) =>
         .catch(() => {});
     }
 
-    const results = slugs.map(s => data.posts.find(p => p.slug === s)).filter(Boolean);
+    // Match slugs (AI may return partial slugs without date suffix)
+    const results = slugs.map(s =>
+      data.posts.find(p => p.slug === s || p.slug.startsWith(s))
+    ).filter(Boolean);
     res.json(results);
   } catch (err) {
     console.error('Blog AI search error:', err.message);
