@@ -25,41 +25,52 @@ function getPool() {
   return pool;
 }
 
-// --- Find relevant image via Pexels (free) ---
+// --- Find relevant image (free, no API key needed) ---
 
 async function findImage(query) {
-  const key = process.env.PEXELS_API_KEY;
-  if (!key) {
-    console.log('  No PEXELS_API_KEY set, skipping image');
-    return '';
-  }
-
+  // Wikimedia Commons — free public API, no key, Creative Commons images
   try {
-    const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=5&orientation=landscape&size=large`;
-    const res = await fetch(url, {
-      headers: { Authorization: key }
-    });
-
-    if (!res.ok) {
-      console.log(`  Pexels error ${res.status}`);
-      return '';
-    }
+    const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url|mime&iiurlwidth=1200&format=json&origin=*`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Status ${res.status}`);
 
     const data = await res.json();
-    if (!data.photos || data.photos.length === 0) {
-      console.log(`  No Pexels results for "${query}"`);
-      return '';
-    }
+    const pages = Object.values(data.query?.pages || {})
+      .filter(p => {
+        const info = p.imageinfo?.[0];
+        // Only use actual photos (JPEG/PNG), skip SVG/PDF/GIF
+        return info?.thumburl && /image\/(jpeg|png)/.test(info.mime || '');
+      });
 
-    // Pick randomly from top results for variety
-    const photo = data.photos[Math.floor(Math.random() * data.photos.length)];
-    const imageUrl = photo.src.landscape || photo.src.large;
-    console.log(`  Pexels image: ${photo.photographer} — "${query}"`);
-    return imageUrl;
+    if (pages.length > 0) {
+      const pick = pages[Math.floor(Math.random() * Math.min(pages.length, 5))];
+      const imgUrl = pick.imageinfo[0].thumburl;
+      console.log(`  Image found: Wikimedia Commons`);
+      return imgUrl;
+    }
   } catch (err) {
-    console.log(`  Pexels search failed: ${err.message}`);
-    return '';
+    console.log(`  Wikimedia search failed: ${err.message}`);
   }
+
+  // Fallback: try a broader query
+  try {
+    const simpler = query.split(' ').slice(0, 2).join(' ') + ' technology';
+    const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(simpler)}&gsrnamespace=6&gsrlimit=5&prop=imageinfo&iiprop=url|mime&iiurlwidth=1200&format=json&origin=*`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      const pages = Object.values(data.query?.pages || {})
+        .filter(p => p.imageinfo?.[0]?.thumburl && /image\/(jpeg|png)/.test(p.imageinfo[0].mime || ''));
+      if (pages.length > 0) {
+        const pick = pages[Math.floor(Math.random() * pages.length)];
+        console.log(`  Image found (fallback): Wikimedia Commons`);
+        return pick.imageinfo[0].thumburl;
+      }
+    }
+  } catch {}
+
+  console.log(`  No image found for "${query}"`);
+  return '';
 }
 
 // --- RSS News Fetching ---
