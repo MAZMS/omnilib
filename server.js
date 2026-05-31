@@ -467,9 +467,10 @@ app.get('/api/blog', async (req, res) => {
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 12));
     const category = req.query.category || undefined;
     const tag = req.query.tag || undefined;
+    const q = req.query.q || undefined;
     const exclude = req.query.exclude || undefined;
 
-    const data = await db.getBlogPosts({ page, limit, category, tag });
+    const data = await db.getBlogPosts({ page, limit, category, tag, q });
 
     if (exclude) {
       data.posts = data.posts.filter(p => p.slug !== exclude);
@@ -680,6 +681,18 @@ app.post('/api/admin/generate-blog', adminAuth, async (req, res) => {
     generateBlog().catch(err => console.error('Manual blog generation error:', err.message));
   } catch (err) {
     res.status(500).json({ error: 'Failed to start generation' });
+  }
+});
+
+// --- Admin: Bulk blog generation (backdated) ---
+
+app.post('/api/admin/generate-bulk', adminAuth, async (req, res) => {
+  try {
+    res.json({ ok: true, message: 'Bulk generation started — check logs. This takes ~30-60 minutes.' });
+    const { main } = require('./generate-bulk');
+    main().catch(err => console.error('Bulk generation error:', err.message));
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to start' });
   }
 });
 

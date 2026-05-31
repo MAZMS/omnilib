@@ -3846,6 +3846,31 @@ main {
   margin: 0 auto;
 }
 
+.blog-search-wrap {
+  max-width: 480px;
+  margin: 20px auto 0;
+}
+
+.blog-search-input {
+  width: 100%;
+  padding: 12px 20px;
+  font-family: var(--font);
+  font-size: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  outline: none;
+  transition: all var(--transition);
+}
+
+.blog-search-input:focus {
+  border-color: var(--accent);
+  box-shadow: var(--glow);
+}
+
+.blog-search-input::placeholder { color: var(--text-muted); }
+
 .blog-filters {
   display: flex;
   justify-content: center;

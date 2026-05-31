@@ -1,6 +1,8 @@
 // --- Blog listing page ---
 let currentPage = 1;
 let activeCategory = '';
+let searchQuery = '';
+let searchTimer = null;
 const categoryLabels = {
   'ai-news': 'AI News',
   'tool-launches': 'Tool Launches',
@@ -12,6 +14,7 @@ const categoryLabels = {
 async function loadPosts() {
   const params = new URLSearchParams({ page: currentPage, limit: 12 });
   if (activeCategory) params.set('category', activeCategory);
+  if (searchQuery) params.set('q', searchQuery);
 
   try {
     const res = await fetch('/api/blog?' + params);
@@ -99,6 +102,17 @@ document.getElementById('blog-category-filters').addEventListener('click', funct
     updateIcon();
   });
 })();
+
+// Search with debounce
+document.getElementById('blog-search').addEventListener('input', function() {
+  clearTimeout(searchTimer);
+  var val = this.value.trim();
+  searchTimer = setTimeout(function() {
+    searchQuery = val;
+    currentPage = 1;
+    loadPosts();
+  }, 300);
+});
 
 // Init
 loadPosts();

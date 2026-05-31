@@ -335,13 +335,14 @@ async function getClicksMap() {
 }
 
 // --- Blog Posts ---
-async function getBlogPosts({ page = 1, limit = 12, category, tag, status = 'published' } = {}) {
+async function getBlogPosts({ page = 1, limit = 12, category, tag, q, status = 'published' } = {}) {
   let where = 'WHERE status = $1';
   const params = [status];
   let idx = 2;
 
   if (category) { where += ` AND category = $${idx++}`; params.push(category); }
   if (tag) { where += ` AND $${idx++} = ANY(tags)`; params.push(tag); }
+  if (q) { where += ` AND (title ILIKE $${idx} OR excerpt ILIKE $${idx} OR meta_description ILIKE $${idx})`; params.push(`%${q}%`); idx++; }
 
   const countRes = await pool.query(`SELECT COUNT(*) FROM blog_posts ${where}`, params);
   const total = parseInt(countRes.rows[0].count);
