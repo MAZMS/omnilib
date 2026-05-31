@@ -2,7 +2,9 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
+const cron = require('node-cron');
 const db = require('./db');
+const { generateBlog } = require('./generate-blog');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -457,6 +459,222 @@ app.get('/tool/:slug', (req, res) => {
   res.send(html);
 });
 
+// --- Blog API ---
+
+app.get('/api/blog', async (req, res) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 12));
+    const category = req.query.category || undefined;
+    const tag = req.query.tag || undefined;
+    const exclude = req.query.exclude || undefined;
+
+    const data = await db.getBlogPosts({ page, limit, category, tag });
+
+    if (exclude) {
+      data.posts = data.posts.filter(p => p.slug !== exclude);
+    }
+
+    res.json(data);
+  } catch (err) {
+    console.error('Blog list error:', err.message);
+    res.json({ posts: [], total: 0, page: 1, totalPages: 0 });
+  }
+});
+
+app.get('/api/blog/:slug', async (req, res) => {
+  try {
+    const post = await db.getBlogPost(req.params.slug);
+    if (!post) return res.status(404).json({ error: 'Post not found' });
+    res.json(post);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load post' });
+  }
+});
+
+// --- Blog listing page ---
+
+app.get('/blog', (req, res) => {
+  trackPageEvent('views');
+  res.sendFile(path.join(__dirname, 'public', 'blog.html'));
+});
+
+// --- Blog post detail page (SEO-injected) ---
+
+app.get('/blog/:slug', async (req, res) => {
+  trackPageEvent('views');
+
+  let html = fs.readFileSync(path.join(__dirname, 'public', 'post.html'), 'utf8');
+
+  try {
+    const post = await db.getBlogPost(req.params.slug);
+
+    if (post) {
+      // Track view (fire and forget)
+      db.incrementBlogViews(req.params.slug).catch(() => {});
+
+      const categoryLabels = { 'ai-news': 'AI News', 'tool-launches': 'Tool Launches', 'tutorials': 'Tutorials', 'industry': 'Industry', 'research': 'Research' };
+      const catLabel = categoryLabels[post.category] || post.category;
+      const pubDate = new Date(post.published_at);
+      const dateDisplay = pubDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      const readTime = Math.max(1, Math.ceil((post.content || '').split(/\s+/).length / 230)) + ' min read';
+      const ogImage = post.featured_image || 'https://omnilib.app/images/og-default.png';
+
+      const metaTitle = `${post.title} — Omnilib Blog`;
+      const metaDesc = post.meta_description || post.excerpt || post.title;
+
+      html = html.replace(/\{\{TITLE\}\}/g, metaTitle);
+      html = html.replace(/\{\{DESCRIPTION\}\}/g, metaDesc);
+      html = html.replace(/\{\{OG_TITLE\}\}/g, post.title);
+      html = html.replace(/\{\{OG_DESCRIPTION\}\}/g, metaDesc);
+      html = html.replace(/\{\{OG_IMAGE\}\}/g, ogImage);
+      html = html.replace(/\{\{SLUG\}\}/g, post.slug);
+      html = html.replace(/\{\{PUBLISHED_AT\}\}/g, pubDate.toISOString());
+      html = html.replace(/\{\{CATEGORY\}\}/g, post.category);
+      html = html.replace(/\{\{CATEGORY_LABEL\}\}/g, catLabel);
+      html = html.replace(/\{\{DATE_DISPLAY\}\}/g, dateDisplay);
+      html = html.replace(/\{\{READ_TIME\}\}/g, readTime);
+      html = html.replace(/\{\{POST_TITLE\}\}/g, post.title);
+      html = html.replace(/\{\{EXCERPT\}\}/g, post.excerpt || '');
+      html = html.replace(/\{\{BREADCRUMB\}\}/g, post.title.length > 50 ? post.title.slice(0, 47) + '...' : post.title);
+      html = html.replace('{{CONTENT}}', post.content || '');
+      html = html.replace('{{SHARE_TITLE}}', encodeURIComponent(post.title));
+
+      const tagsHtml = (post.tags || []).map(t =>
+        `<a href="/blog?tag=${encodeURIComponent(t)}" class="post-tag">${t}</a>`
+      ).join('');
+      html = html.replace('{{TAGS_HTML}}', tagsHtml);
+
+      const jsonLd = {
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: post.title,
+        description: metaDesc,
+        image: ogImage,
+        url: `https://omnilib.app/blog/${post.slug}`,
+        datePublished: pubDate.toISOString(),
+        dateModified: new Date(post.updated_at || post.published_at).toISOString(),
+        author: { '@type': 'Organization', name: 'Omnilib', url: 'https://omnilib.app' },
+        publisher: { '@type': 'Organization', name: 'Omnilib', url: 'https://omnilib.app' },
+        mainEntityOfPage: { '@type': 'WebPage', '@id': `https://omnilib.app/blog/${post.slug}` },
+        keywords: (post.tags || []).join(', '),
+        articleSection: catLabel,
+        wordCount: (post.content || '').split(/\s+/).length
+      };
+      html = html.replace('{{JSON_LD}}', JSON.stringify(jsonLd));
+    } else {
+      html = html.replace(/\{\{TITLE\}\}/g, 'Post Not Found — Omnilib Blog');
+      html = html.replace(/\{\{DESCRIPTION\}\}/g, 'This blog post was not found.');
+      html = html.replace(/\{\{OG_TITLE\}\}/g, 'Post Not Found');
+      html = html.replace(/\{\{OG_DESCRIPTION\}\}/g, 'This blog post was not found.');
+      html = html.replace(/\{\{OG_IMAGE\}\}/g, 'https://omnilib.app/images/og-default.png');
+      html = html.replace(/\{\{SLUG\}\}/g, '');
+      html = html.replace(/\{\{PUBLISHED_AT\}\}/g, '');
+      html = html.replace(/\{\{CATEGORY\}\}/g, '');
+      html = html.replace(/\{\{CATEGORY_LABEL\}\}/g, '');
+      html = html.replace(/\{\{DATE_DISPLAY\}\}/g, '');
+      html = html.replace(/\{\{READ_TIME\}\}/g, '');
+      html = html.replace(/\{\{POST_TITLE\}\}/g, 'Post Not Found');
+      html = html.replace(/\{\{EXCERPT\}\}/g, '');
+      html = html.replace(/\{\{BREADCRUMB\}\}/g, 'Not Found');
+      html = html.replace('{{CONTENT}}', '<p>This post could not be found. <a href="/blog">Back to blog</a>.</p>');
+      html = html.replace('{{SHARE_TITLE}}', '');
+      html = html.replace('{{TAGS_HTML}}', '');
+      html = html.replace('{{JSON_LD}}', '{}');
+    }
+  } catch (err) {
+    console.error('Blog post render error:', err.message);
+    html = html.replace(/\{\{[A-Z_]+\}\}/g, '');
+    html = html.replace('{{JSON_LD}}', '{}');
+  }
+
+  res.send(html);
+});
+
+// --- Blog RSS Feed ---
+
+app.get('/blog/rss.xml', async (req, res) => {
+  try {
+    const data = await db.getBlogPosts({ limit: 30 });
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    xml += '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">\n<channel>\n';
+    xml += '  <title>Omnilib AI &amp; Tech News</title>\n';
+    xml += '  <link>https://omnilib.app/blog</link>\n';
+    xml += '  <description>Latest AI and tech news, trends, and insights.</description>\n';
+    xml += '  <language>en-us</language>\n';
+    xml += '  <atom:link href="https://omnilib.app/blog/rss.xml" rel="self" type="application/rss+xml"/>\n';
+
+    for (const post of data.posts) {
+      xml += '  <item>\n';
+      xml += `    <title><![CDATA[${post.title}]]></title>\n`;
+      xml += `    <link>https://omnilib.app/blog/${post.slug}</link>\n`;
+      xml += `    <guid>https://omnilib.app/blog/${post.slug}</guid>\n`;
+      xml += `    <description><![CDATA[${post.excerpt}]]></description>\n`;
+      xml += `    <pubDate>${new Date(post.published_at).toUTCString()}</pubDate>\n`;
+      if (post.category) xml += `    <category>${post.category}</category>\n`;
+      xml += '  </item>\n';
+    }
+
+    xml += '</channel>\n</rss>';
+    res.type('application/xml').send(xml);
+  } catch {
+    res.status(500).type('text/plain').send('RSS feed unavailable');
+  }
+});
+
+// --- Admin: Blog posts ---
+
+app.get('/api/admin/blog', adminAuth, async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const data = await db.getBlogPosts({ page, limit: 50, status: req.query.status || undefined });
+    res.json(data);
+  } catch (err) {
+    res.json({ posts: [], total: 0, page: 1, totalPages: 0 });
+  }
+});
+
+app.post('/api/admin/blog', adminAuth, async (req, res) => {
+  try {
+    const post = await db.createBlogPost(req.body);
+    if (!post) return res.status(409).json({ error: 'Post with this slug already exists' });
+    res.status(201).json(post);
+  } catch (err) {
+    console.error('Create blog post error:', err.message);
+    res.status(500).json({ error: 'Failed to create post' });
+  }
+});
+
+app.put('/api/admin/blog/:id', adminAuth, async (req, res) => {
+  try {
+    const post = await db.updateBlogPost(req.params.id, req.body);
+    if (!post) return res.status(404).json({ error: 'Post not found' });
+    res.json(post);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update post' });
+  }
+});
+
+app.delete('/api/admin/blog/:id', adminAuth, async (req, res) => {
+  try {
+    await db.deleteBlogPost(req.params.id);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete post' });
+  }
+});
+
+// --- Admin: Trigger blog generation manually ---
+
+app.post('/api/admin/generate-blog', adminAuth, async (req, res) => {
+  try {
+    res.json({ ok: true, message: 'Blog generation started' });
+    generateBlog().catch(err => console.error('Manual blog generation error:', err.message));
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to start generation' });
+  }
+});
+
 // --- Compare page ---
 
 app.get('/compare', (req, res) => {
@@ -489,18 +707,27 @@ app.get('/admin', (req, res) => {
 
 // --- Sitemap ---
 
-app.get('/sitemap.xml', (req, res) => {
+app.get('/sitemap.xml', async (req, res) => {
   const data = readData();
   const base = 'https://omnilib.app';
 
   let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
   xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
   xml += `  <url><loc>${base}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>\n`;
+  xml += `  <url><loc>${base}/blog</loc><changefreq>daily</changefreq><priority>0.9</priority></url>\n`;
   xml += `  <url><loc>${base}/compare</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>\n`;
 
   for (const tool of data.tools) {
     xml += `  <url><loc>${base}/tool/${tool.slug}</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>\n`;
   }
+
+  // Blog posts
+  try {
+    const blogSlugs = await db.getRecentBlogSlugs(200);
+    for (const slug of blogSlugs) {
+      xml += `  <url><loc>${base}/blog/${slug}</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>\n`;
+    }
+  } catch {}
 
   xml += '</urlset>';
   res.type('application/xml').send(xml);
@@ -721,6 +948,15 @@ async function start() {
   } catch (err) {
     console.error('PostgreSQL connection failed:', err.message);
     console.log('Server will start but DB features will fail');
+  }
+
+  // Blog auto-generation: every day at midnight UTC
+  if (process.env.OPENAI_API_KEY) {
+    cron.schedule('0 0 * * *', () => {
+      console.log('[CRON] Starting daily blog generation...');
+      generateBlog().catch(err => console.error('[CRON] Blog generation error:', err.message));
+    }, { timezone: 'UTC' });
+    console.log('Blog cron scheduled (daily at 00:00 UTC)');
   }
 
   app.listen(PORT, () => {

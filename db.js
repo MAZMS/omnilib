@@ -91,6 +91,28 @@ async function initDB() {
         slug TEXT PRIMARY KEY,
         clicks INT DEFAULT 0
       );
+
+      CREATE TABLE IF NOT EXISTS blog_posts (
+        id SERIAL PRIMARY KEY,
+        slug TEXT UNIQUE NOT NULL,
+        title TEXT NOT NULL,
+        excerpt TEXT NOT NULL DEFAULT '',
+        content TEXT NOT NULL DEFAULT '',
+        meta_description TEXT NOT NULL DEFAULT '',
+        tags TEXT[] DEFAULT '{}',
+        category TEXT DEFAULT 'ai-news',
+        featured_image TEXT DEFAULT '',
+        author TEXT DEFAULT 'Omnilib',
+        status TEXT DEFAULT 'published',
+        views INT DEFAULT 0,
+        published_at TIMESTAMPTZ DEFAULT NOW(),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_blog_posts_slug ON blog_posts(slug);
+      CREATE INDEX IF NOT EXISTS idx_blog_posts_status ON blog_posts(status);
+      CREATE INDEX IF NOT EXISTS idx_blog_posts_published ON blog_posts(published_at DESC);
     `);
     console.log('Database tables initialized');
   } finally {
@@ -312,6 +334,95 @@ async function getClicksMap() {
   return map;
 }
 
+// --- Blog Posts ---
+async function getBlogPosts({ page = 1, limit = 12, category, tag, status = 'published' } = {}) {
+  let where = 'WHERE status = $1';
+  const params = [status];
+  let idx = 2;
+
+  if (category) { where += ` AND category = $${idx++}`; params.push(category); }
+  if (tag) { where += ` AND $${idx++} = ANY(tags)`; params.push(tag); }
+
+  const countRes = await pool.query(`SELECT COUNT(*) FROM blog_posts ${where}`, params);
+  const total = parseInt(countRes.rows[0].count);
+
+  const offset = (page - 1) * limit;
+  params.push(limit, offset);
+  const { rows } = await pool.query(
+    `SELECT id, slug, title, excerpt, meta_description, tags, category, featured_image, author, status, views, published_at, created_at
+     FROM blog_posts ${where}
+     ORDER BY published_at DESC
+     LIMIT $${idx++} OFFSET $${idx++}`,
+    params
+  );
+
+  return { posts: rows, total, page, totalPages: Math.ceil(total / limit) };
+}
+
+async function getBlogPost(slug) {
+  const { rows } = await pool.query(
+    'SELECT * FROM blog_posts WHERE slug = $1',
+    [slug]
+  );
+  return rows[0] || null;
+}
+
+async function createBlogPost(post) {
+  const { rows } = await pool.query(
+    `INSERT INTO blog_posts (slug, title, excerpt, content, meta_description, tags, category, featured_image, author, status, published_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+     ON CONFLICT (slug) DO NOTHING
+     RETURNING *`,
+    [post.slug, post.title, post.excerpt, post.content, post.metaDescription,
+     post.tags || [], post.category || 'ai-news', post.featuredImage || '',
+     post.author || 'Omnilib', post.status || 'published',
+     post.publishedAt || new Date()]
+  );
+  return rows[0] || null;
+}
+
+async function updateBlogPost(id, updates) {
+  const fields = [];
+  const params = [];
+  let idx = 1;
+
+  const allowed = ['title', 'slug', 'excerpt', 'content', 'meta_description', 'tags', 'category', 'featured_image', 'author', 'status'];
+  const keyMap = { metaDescription: 'meta_description', featuredImage: 'featured_image' };
+
+  for (const [key, val] of Object.entries(updates)) {
+    const col = keyMap[key] || key;
+    if (allowed.includes(col) && val !== undefined) {
+      fields.push(`${col} = $${idx++}`);
+      params.push(val);
+    }
+  }
+  if (fields.length === 0) return null;
+
+  fields.push(`updated_at = NOW()`);
+  params.push(id);
+  const { rows } = await pool.query(
+    `UPDATE blog_posts SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+    params
+  );
+  return rows[0] || null;
+}
+
+async function deleteBlogPost(id) {
+  await pool.query('DELETE FROM blog_posts WHERE id = $1', [id]);
+}
+
+async function incrementBlogViews(slug) {
+  await pool.query('UPDATE blog_posts SET views = views + 1 WHERE slug = $1', [slug]);
+}
+
+async function getRecentBlogSlugs(limit = 50) {
+  const { rows } = await pool.query(
+    "SELECT slug FROM blog_posts WHERE status = 'published' ORDER BY published_at DESC LIMIT $1",
+    [limit]
+  );
+  return rows.map(r => r.slug);
+}
+
 module.exports = {
   pool,
   initDB,
@@ -331,5 +442,12 @@ module.exports = {
   logAiUsage,
   getAiUsage,
   incrementClicks,
-  getClicksMap
+  getClicksMap,
+  getBlogPosts,
+  getBlogPost,
+  createBlogPost,
+  updateBlogPost,
+  deleteBlogPost,
+  incrementBlogViews,
+  getRecentBlogSlugs
 };

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI & Tech News Blog — Omnilib</title>
+  <meta name="description" content="Latest AI and tech news, trends, and insights. Stay updated on artificial intelligence breakthroughs, tool launches, and industry analysis.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://omnilib.app/blog">
+  <meta property="og:title" content="AI & Tech News Blog — Omnilib">
+  <meta property="og:description" content="Latest AI and tech news, trends, and insights. Stay updated on artificial intelligence breakthroughs, tool launches, and industry analysis.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://omnilib.app/blog">
+  <meta property="og:image" content="https://omnilib.app/images/og-default.png">
+  <meta property="og:site_name" content="Omnilib">
+  <link rel="alternate" type="application/rss+xml" title="Omnilib Blog RSS" href="https://omnilib.app/blog/rss.xml">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+  <link rel="stylesheet" href="/css/style.css?v=19">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    "name": "Omnilib AI & Tech News",
+    "description": "Latest AI and tech news, trends, and insights",
+    "url": "https://omnilib.app/blog",
+    "publisher": {
+      "@type": "Organization",
+      "name": "Omnilib",
+      "url": "https://omnilib.app"
+    }
+  }
+  </script>
+  <script>
+    (function(){var s=localStorage.getItem('theme');if(s==='dark'||(!s&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.setAttribute('data-theme','dark')}})();
+  </script>
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <a href="/" class="logo">
+        <span class="logo-icon">📚</span> Omnilib
+      </a>
+      <nav class="nav">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/blog" class="nav-link active">Blog</a>
+        <a href="/compare" class="nav-link">Compare</a>
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+          <span class="theme-icon" id="theme-icon">🌙</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="blog-hero">
+      <h1 class="blog-hero-title">AI & Tech News</h1>
+      <p class="blog-hero-subtitle">Daily insights on artificial intelligence, tool launches, and industry trends.</p>
+    </section>
+
+    <section class="blog-filters">
+      <div class="pill-group" id="blog-category-filters">
+        <button class="pill active" data-category="">All</button>
+        <button class="pill" data-category="ai-news">AI News</button>
+        <button class="pill" data-category="tool-launches">Tool Launches</button>
+        <button class="pill" data-category="tutorials">Tutorials</button>
+        <button class="pill" data-category="industry">Industry</button>
+        <button class="pill" data-category="research">Research</button>
+      </div>
+    </section>
+
+    <section class="blog-grid" id="blog-grid">
+      <!-- Populated by JS -->
+    </section>
+
+    <div class="blog-pagination" id="blog-pagination"></div>
+
+    <div class="blog-empty" id="blog-empty" style="display:none">
+      <p>No posts yet. Check back soon!</p>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <span class="logo"><span class="logo-icon">📚</span> Omnilib</span>
+          <p>The open library of AI tools.<br>Curated with care.</p>
+        </div>
+        <div class="footer-links">
+          <a href="/">Home</a>
+          <a href="/blog">Blog</a>
+          <a href="/compare">Compare</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Omnilib</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/blog.js?v=1"></script>
+</body>
+</html>
