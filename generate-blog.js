@@ -25,45 +25,53 @@ function getPool() {
   return pool;
 }
 
-// --- Curated featured images (Unsplash, free to hotlink) ---
+// --- Generate featured image via DALL-E ---
 
-const IMAGES = {
-  'ai-news': [
-    'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1655720828018-edd2daec9349?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1684369175833-4b445ad6bfb5?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1699116548123-5413e1c29ced?auto=format&fit=crop&w=1200&q=80',
-  ],
-  'tool-launches': [
-    'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?auto=format&fit=crop&w=1200&q=80',
-  ],
-  'tutorials': [
-    'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1587620962725-abab7fe55159?auto=format&fit=crop&w=1200&q=80',
-  ],
-  'industry': [
-    'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1559136555-9303baea8ebd?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80',
-  ],
-  'research': [
-    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80',
-  ]
-};
+async function generateImage(query) {
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) return '';
 
-function pickImage(category) {
-  const list = IMAGES[category] || IMAGES['ai-news'];
-  return list[Math.floor(Math.random() * list.length)];
+  try {
+    const prompt = `A professional, modern blog header image for a tech article about: ${query}. Clean, editorial style. No text or words in the image. Photorealistic, high quality, wide landscape format.`;
+    const res = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        model: 'dall-e-3',
+        prompt,
+        n: 1,
+        size: '1792x1024',
+        quality: 'standard'
+      })
+    });
+    if (!res.ok) {
+      console.log(`  DALL-E error ${res.status}, skipping image`);
+      return '';
+    }
+    const data = await res.json();
+    const imageUrl = data.data?.[0]?.url;
+    if (!imageUrl) return '';
+
+    // DALL-E URLs expire — download and save locally
+    const imgRes = await fetch(imageUrl);
+    if (!imgRes.ok) return '';
+    const buffer = Buffer.from(await imgRes.arrayBuffer());
+
+    const fs = require('fs');
+    const path = require('path');
+    const dir = path.join(__dirname, 'public', 'images', 'blog');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+    const filename = `blog-${Date.now()}-${Math.random().toString(36).slice(2, 6)}.png`;
+    const filePath = path.join(dir, filename);
+    fs.writeFileSync(filePath, buffer);
+
+    console.log(`  Image saved: /images/blog/${filename}`);
+    return `/images/blog/${filename}`;
+  } catch (err) {
+    console.log(`  Image generation failed: ${err.message}`);
+    return '';
+  }
 }
 
 // --- RSS News Fetching ---
@@ -274,7 +282,8 @@ Return ONLY a JSON object:
   "metaDescription": "150-160 char meta desc — keyword-rich, different from excerpt",
   "content": "full HTML content",
   "tags": ["4-6 lowercase tags"],
-  "category": "${topic.category}"
+  "category": "${topic.category}",
+  "imageQuery": "2-4 word photo search query that visually represents this specific article (e.g. 'server room data center', 'developer coding laptop', 'AI robot handshake', 'semiconductor chip closeup')"
 }
 
 Raw JSON only, no fences.`;
@@ -348,7 +357,9 @@ async function generateBlog() {
       continue;
     }
 
-    const image = pickImage(post.category || topic.category);
+    const imageQuery = post.imageQuery || topic.title;
+    console.log(`  Generating image: "${imageQuery}"`);
+    const image = await generateImage(imageQuery);
     const result = await savePost(post, image);
     if (result) saved++;
 
