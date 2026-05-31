@@ -4044,6 +4044,21 @@ main {
   line-height: 1.6;
 }
 
+.post-featured-image {
+  width: 100%;
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 32px;
+  max-height: 420px;
+}
+
+.post-featured-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .post-content {
   font-size: 15px;
   line-height: 1.8;

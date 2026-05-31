@@ -571,6 +571,11 @@ app.get('/blog/:slug', async (req, res) => {
       html = html.replace('{{CONTENT}}', post.content || '');
       html = html.replace('{{SHARE_TITLE}}', encodeURIComponent(post.title));
 
+      const featuredImg = post.featured_image
+        ? `<div class="post-featured-image"><img src="${post.featured_image}" alt="${post.title}" loading="eager"></div>`
+        : '';
+      html = html.replace('{{FEATURED_IMAGE_HTML}}', featuredImg);
+
       const tagsHtml = (post.tags || []).map(t =>
         `<a href="/blog?tag=${encodeURIComponent(t)}" class="post-tag">${t}</a>`
       ).join('');
@@ -609,6 +614,7 @@ app.get('/blog/:slug', async (req, res) => {
       html = html.replace(/\{\{EXCERPT\}\}/g, '');
       html = html.replace(/\{\{BREADCRUMB\}\}/g, 'Not Found');
       html = html.replace('{{CONTENT}}', '<p>This post could not be found. <a href="/blog">Back to blog</a>.</p>');
+      html = html.replace('{{FEATURED_IMAGE_HTML}}', '');
       html = html.replace('{{SHARE_TITLE}}', '');
       html = html.replace('{{TAGS_HTML}}', '');
       html = html.replace('{{JSON_LD}}', '{}');

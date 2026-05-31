@@ -8,11 +8,20 @@
 - Affiliate links for each tool at /go/{slug}
 - Tool detail pages at /tool/{slug}
 
+## Blog
+- Daily AI & tech news blog at /blog
+- Topics: AI news, tool launches, tutorials, industry analysis, research
+- RSS feed at /blog/rss.xml
+- Covers: AI model releases, tool comparisons, industry trends, regulation, practical guides
+
 ## API
 - GET /api/tools - List all tools (supports ?q=, ?category=, ?pricing=, ?tag=, ?sort=)
 - GET /api/tools/{slug} - Get single tool details
 - GET /api/categories - List all categories
+- GET /api/blog - List blog posts (supports ?page=, ?category=, ?tag=)
+- GET /api/blog/{slug} - Get single blog post
 - GET /sitemap.xml - Full sitemap
+- GET /blog/rss.xml - Blog RSS feed
 
 ## Categories
 Chatbots, Image Generation, Writing, Coding, Video, Audio & Music, Productivity, Research, Design, Marketing
