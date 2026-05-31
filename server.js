@@ -516,8 +516,15 @@ app.get('/api/blog/ai-search', rateLimit('blog-ai', 10, 60), async (req, res) =>
       })
     });
 
+    if (!response.ok) {
+      console.error('Blog AI search OpenAI error:', response.status);
+      const data2 = await db.getBlogPosts({ q: query, limit: 6 });
+      return res.json(data2.posts);
+    }
+
     const aiData = await response.json();
     const content = aiData.choices?.[0]?.message?.content || '[]';
+    console.log('Blog AI search result:', content.slice(0, 200));
     let slugs;
     try { slugs = JSON.parse(content); } catch { slugs = []; }
 
@@ -528,7 +535,8 @@ app.get('/api/blog/ai-search', rateLimit('blog-ai', 10, 60), async (req, res) =>
 
     const results = slugs.map(s => data.posts.find(p => p.slug === s)).filter(Boolean);
     res.json(results);
-  } catch {
+  } catch (err) {
+    console.error('Blog AI search error:', err.message);
     // Fallback to text search
     const data = await db.getBlogPosts({ q: query, limit: 6 });
     res.json(data.posts);
