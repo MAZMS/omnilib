@@ -25,71 +25,41 @@ function getPool() {
   return pool;
 }
 
-// --- Generate featured image via OpenAI ---
+// --- Find relevant image via Pexels (free) ---
 
-async function generateImage(query) {
-  const key = process.env.OPENAI_API_KEY;
-  if (!key) return '';
-
-  // Try models in order of preference
-  const attempts = [
-    { model: 'gpt-image-1', size: '1536x1024' },
-    { model: 'dall-e-3', size: '1792x1024', quality: 'standard' },
-    { model: 'dall-e-2', size: '1024x1024' },
-  ];
-
-  const prompt = `A professional blog header photo for a tech article about: ${query}. Modern, clean, editorial style. No text or words in the image. High quality.`;
-
-  for (const attempt of attempts) {
-    try {
-      const body = { model: attempt.model, prompt, n: 1, size: attempt.size };
-      if (attempt.quality) body.quality = attempt.quality;
-
-      const res = await fetch('https://api.openai.com/v1/images/generations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-        body: JSON.stringify(body)
-      });
-
-      if (!res.ok) {
-        const errText = await res.text();
-        console.log(`  ${attempt.model} error ${res.status}: ${errText.slice(0, 150)}`);
-        continue;
-      }
-
-      const data = await res.json();
-      // gpt-image-1 returns b64_json, dall-e returns url
-      let imageUrl = data.data?.[0]?.url;
-      let buffer;
-
-      if (imageUrl) {
-        const imgRes = await fetch(imageUrl);
-        if (!imgRes.ok) continue;
-        buffer = Buffer.from(await imgRes.arrayBuffer());
-      } else if (data.data?.[0]?.b64_json) {
-        buffer = Buffer.from(data.data[0].b64_json, 'base64');
-      } else {
-        continue;
-      }
-
-      const fs = require('fs');
-      const path = require('path');
-      const dir = path.join(__dirname, 'public', 'images', 'blog');
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-
-      const ext = attempt.model === 'gpt-image-1' ? 'png' : 'png';
-      const filename = `blog-${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
-      fs.writeFileSync(path.join(dir, filename), buffer);
-
-      console.log(`  Image saved (${attempt.model}): /images/blog/${filename}`);
-      return `/images/blog/${filename}`;
-    } catch (err) {
-      console.log(`  ${attempt.model} failed: ${err.message}`);
-    }
+async function findImage(query) {
+  const key = process.env.PEXELS_API_KEY;
+  if (!key) {
+    console.log('  No PEXELS_API_KEY set, skipping image');
+    return '';
   }
 
-  console.log('  All image models failed, no image');
-  return '';
+  try {
+    const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=5&orientation=landscape&size=large`;
+    const res = await fetch(url, {
+      headers: { Authorization: key }
+    });
+
+    if (!res.ok) {
+      console.log(`  Pexels error ${res.status}`);
+      return '';
+    }
+
+    const data = await res.json();
+    if (!data.photos || data.photos.length === 0) {
+      console.log(`  No Pexels results for "${query}"`);
+      return '';
+    }
+
+    // Pick randomly from top results for variety
+    const photo = data.photos[Math.floor(Math.random() * data.photos.length)];
+    const imageUrl = photo.src.landscape || photo.src.large;
+    console.log(`  Pexels image: ${photo.photographer} — "${query}"`);
+    return imageUrl;
+  } catch (err) {
+    console.log(`  Pexels search failed: ${err.message}`);
+    return '';
+  }
 }
 
 // --- RSS News Fetching ---
@@ -376,8 +346,8 @@ async function generateBlog() {
     }
 
     const imageQuery = post.imageQuery || topic.title;
-    console.log(`  Generating image: "${imageQuery}"`);
-    const image = await generateImage(imageQuery);
+    console.log(`  Finding image: "${imageQuery}"`);
+    const image = await findImage(imageQuery);
     const result = await savePost(post, image);
     if (result) saved++;
 
