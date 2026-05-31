@@ -492,6 +492,37 @@ app.get('/api/blog/:slug', async (req, res) => {
   }
 });
 
+// --- Blog RSS Feed (must be before /blog/:slug) ---
+
+app.get('/blog/rss.xml', async (req, res) => {
+  try {
+    const data = await db.getBlogPosts({ limit: 30 });
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    xml += '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">\n<channel>\n';
+    xml += '  <title>Omnilib AI &amp; Tech News</title>\n';
+    xml += '  <link>https://omnilib.app/blog</link>\n';
+    xml += '  <description>Latest AI and tech news, trends, and insights.</description>\n';
+    xml += '  <language>en-us</language>\n';
+    xml += '  <atom:link href="https://omnilib.app/blog/rss.xml" rel="self" type="application/rss+xml"/>\n';
+
+    for (const post of data.posts) {
+      xml += '  <item>\n';
+      xml += `    <title><![CDATA[${post.title}]]></title>\n`;
+      xml += `    <link>https://omnilib.app/blog/${post.slug}</link>\n`;
+      xml += `    <guid>https://omnilib.app/blog/${post.slug}</guid>\n`;
+      xml += `    <description><![CDATA[${post.excerpt}]]></description>\n`;
+      xml += `    <pubDate>${new Date(post.published_at).toUTCString()}</pubDate>\n`;
+      if (post.category) xml += `    <category>${post.category}</category>\n`;
+      xml += '  </item>\n';
+    }
+
+    xml += '</channel>\n</rss>';
+    res.type('application/xml').send(xml);
+  } catch {
+    res.status(500).type('text/plain').send('RSS feed unavailable');
+  }
+});
+
 // --- Blog listing page ---
 
 app.get('/blog', (req, res) => {
@@ -591,36 +622,7 @@ app.get('/blog/:slug', async (req, res) => {
   res.send(html);
 });
 
-// --- Blog RSS Feed ---
-
-app.get('/blog/rss.xml', async (req, res) => {
-  try {
-    const data = await db.getBlogPosts({ limit: 30 });
-    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-    xml += '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">\n<channel>\n';
-    xml += '  <title>Omnilib AI &amp; Tech News</title>\n';
-    xml += '  <link>https://omnilib.app/blog</link>\n';
-    xml += '  <description>Latest AI and tech news, trends, and insights.</description>\n';
-    xml += '  <language>en-us</language>\n';
-    xml += '  <atom:link href="https://omnilib.app/blog/rss.xml" rel="self" type="application/rss+xml"/>\n';
-
-    for (const post of data.posts) {
-      xml += '  <item>\n';
-      xml += `    <title><![CDATA[${post.title}]]></title>\n`;
-      xml += `    <link>https://omnilib.app/blog/${post.slug}</link>\n`;
-      xml += `    <guid>https://omnilib.app/blog/${post.slug}</guid>\n`;
-      xml += `    <description><![CDATA[${post.excerpt}]]></description>\n`;
-      xml += `    <pubDate>${new Date(post.published_at).toUTCString()}</pubDate>\n`;
-      if (post.category) xml += `    <category>${post.category}</category>\n`;
-      xml += '  </item>\n';
-    }
-
-    xml += '</channel>\n</rss>';
-    res.type('application/xml').send(xml);
-  } catch {
-    res.status(500).type('text/plain').send('RSS feed unavailable');
-  }
-});
+// (RSS feed moved above /blog/:slug route)
 
 // --- Admin: Blog posts ---
 
