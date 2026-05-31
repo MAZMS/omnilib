@@ -483,6 +483,58 @@ app.get('/api/blog', async (req, res) => {
   }
 });
 
+// --- Blog AI search ---
+
+app.get('/api/blog/ai-search', rateLimit('blog-ai', 10, 60), async (req, res) => {
+  const query = req.query.q;
+  if (!query) return res.json([]);
+
+  const OPENAI_KEY = process.env.OPENAI_API_KEY;
+  if (!OPENAI_KEY) return res.redirect('/api/blog?q=' + encodeURIComponent(query));
+
+  try {
+    // Get recent posts for AI to search through
+    const data = await db.getBlogPosts({ limit: 200 });
+    const postSummaries = data.posts.map(p =>
+      `${p.slug}: "${p.title}" — ${p.excerpt} [${p.category}] tags:${(p.tags||[]).join(',')}`
+    ).join('\n');
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + OPENAI_KEY },
+      body: JSON.stringify({
+        model: 'gpt-4.1-nano',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a blog search engine. Given a user query, return the slugs of the 6 most relevant blog posts. Understand intent — if they ask "what happened with OpenAI" find posts about OpenAI news. Return ONLY a JSON array of slugs.\n\nPosts:\n' + postSummaries
+          },
+          { role: 'user', content: query }
+        ],
+        max_tokens: 300,
+        temperature: 0
+      })
+    });
+
+    const aiData = await response.json();
+    const content = aiData.choices?.[0]?.message?.content || '[]';
+    let slugs;
+    try { slugs = JSON.parse(content); } catch { slugs = []; }
+
+    if (aiData.usage) {
+      db.logAiUsage('gpt-4.1-nano', aiData.usage.prompt_tokens || 0, aiData.usage.completion_tokens || 0, 'blog:' + query)
+        .catch(() => {});
+    }
+
+    const results = slugs.map(s => data.posts.find(p => p.slug === s)).filter(Boolean);
+    res.json(results);
+  } catch {
+    // Fallback to text search
+    const data = await db.getBlogPosts({ q: query, limit: 6 });
+    res.json(data.posts);
+  }
+});
+
 app.get('/api/blog/:slug', async (req, res) => {
   try {
     const post = await db.getBlogPost(req.params.slug);

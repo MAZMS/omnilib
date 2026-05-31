@@ -3,6 +3,7 @@ let currentPage = 1;
 let activeCategory = '';
 let searchQuery = '';
 let searchTimer = null;
+let aiSearchTimer = null;
 const categoryLabels = {
   'ai-news': 'AI News',
   'tool-launches': 'Tool Launches',
@@ -26,9 +27,28 @@ async function loadPosts() {
   }
 }
 
+// AI-powered smart search
+async function triggerAiSearch(query) {
+  var status = document.getElementById('blog-ai-status');
+  if (status) status.style.display = 'block';
+
+  try {
+    var res = await fetch('/api/blog/ai-search?q=' + encodeURIComponent(query));
+    var posts = await res.json();
+    if (posts.length > 0) {
+      renderPosts(posts);
+      // Hide pagination for AI results
+      document.getElementById('blog-pagination').innerHTML =
+        '<span class="blog-page-info" style="color:var(--accent)">&#x2728; AI found ' + posts.length + ' relevant articles</span>';
+    }
+  } catch {}
+
+  if (status) status.style.display = 'none';
+}
+
 function renderPosts(posts) {
-  const grid = document.getElementById('blog-grid');
-  const empty = document.getElementById('blog-empty');
+  var grid = document.getElementById('blog-grid');
+  var empty = document.getElementById('blog-empty');
 
   if (!posts || posts.length === 0) {
     grid.innerHTML = '';
@@ -56,7 +76,7 @@ function renderPosts(posts) {
 
 function renderPagination(data) {
   var el = document.getElementById('blog-pagination');
-  if (data.totalPages <= 1) { el.innerHTML = ''; return; }
+  if (!data || !data.totalPages || data.totalPages <= 1) { el.innerHTML = ''; return; }
 
   var html = '';
   if (data.page > 1) {
@@ -84,6 +104,8 @@ document.getElementById('blog-category-filters').addEventListener('click', funct
   this.querySelectorAll('.pill').forEach(function(p) { p.classList.remove('active'); });
   btn.classList.add('active');
   activeCategory = btn.dataset.category || '';
+  searchQuery = '';
+  document.getElementById('blog-search').value = '';
   currentPage = 1;
   loadPosts();
 });
@@ -103,15 +125,33 @@ document.getElementById('blog-category-filters').addEventListener('click', funct
   });
 })();
 
-// Search with debounce
+// Smart search: instant text filter + delayed AI search
 document.getElementById('blog-search').addEventListener('input', function() {
   clearTimeout(searchTimer);
+  clearTimeout(aiSearchTimer);
   var val = this.value.trim();
+
+  if (!val) {
+    searchQuery = '';
+    currentPage = 1;
+    document.getElementById('blog-ai-status').style.display = 'none';
+    loadPosts();
+    return;
+  }
+
+  // Instant text search (300ms debounce)
   searchTimer = setTimeout(function() {
     searchQuery = val;
     currentPage = 1;
     loadPosts();
   }, 300);
+
+  // AI search kicks in after 800ms for smart results
+  if (val.length >= 3) {
+    aiSearchTimer = setTimeout(function() {
+      triggerAiSearch(val);
+    }, 800);
+  }
 });
 
 // Init
