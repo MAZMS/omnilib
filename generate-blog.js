@@ -25,49 +25,46 @@ function getPool() {
   return pool;
 }
 
-// --- Find relevant image (free, no API key needed) ---
+// --- Find relevant image via Pexels ---
 
 async function findImage(query) {
-  // Wikimedia Commons — free public API, no key, Creative Commons images
-  try {
-    const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url|mime&iiurlwidth=1200&format=json&origin=*`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Status ${res.status}`);
-
-    const data = await res.json();
-    const pages = Object.values(data.query?.pages || {})
-      .filter(p => {
-        const info = p.imageinfo?.[0];
-        // Only use actual photos (JPEG/PNG), skip SVG/PDF/GIF
-        return info?.thumburl && /image\/(jpeg|png)/.test(info.mime || '');
-      });
-
-    if (pages.length > 0) {
-      const pick = pages[Math.floor(Math.random() * Math.min(pages.length, 5))];
-      const imgUrl = pick.imageinfo[0].thumburl;
-      console.log(`  Image found: Wikimedia Commons`);
-      return imgUrl;
-    }
-  } catch (err) {
-    console.log(`  Wikimedia search failed: ${err.message}`);
+  const key = process.env.PEXELS_API_KEY;
+  if (!key) {
+    console.log('  No PEXELS_API_KEY, skipping image');
+    return '';
   }
 
-  // Fallback: try a broader query
   try {
-    const simpler = query.split(' ').slice(0, 2).join(' ') + ' technology';
-    const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(simpler)}&gsrnamespace=6&gsrlimit=5&prop=imageinfo&iiprop=url|mime&iiurlwidth=1200&format=json&origin=*`;
-    const res = await fetch(url);
-    if (res.ok) {
-      const data = await res.json();
-      const pages = Object.values(data.query?.pages || {})
-        .filter(p => p.imageinfo?.[0]?.thumburl && /image\/(jpeg|png)/.test(p.imageinfo[0].mime || ''));
-      if (pages.length > 0) {
-        const pick = pages[Math.floor(Math.random() * pages.length)];
-        console.log(`  Image found (fallback): Wikimedia Commons`);
-        return pick.imageinfo[0].thumburl;
+    const res = await fetch(
+      `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=5&orientation=landscape`,
+      { headers: { Authorization: key } }
+    );
+    if (!res.ok) throw new Error(`Pexels ${res.status}`);
+
+    const data = await res.json();
+    if (data.photos?.length > 0) {
+      const photo = data.photos[Math.floor(Math.random() * data.photos.length)];
+      console.log(`  Pexels: "${photo.alt || query}" by ${photo.photographer}`);
+      return photo.src.landscape || photo.src.large;
+    }
+
+    // Broaden search if no results
+    const simpler = query.split(' ').slice(0, 2).join(' ');
+    const res2 = await fetch(
+      `https://api.pexels.com/v1/search?query=${encodeURIComponent(simpler)}&per_page=5&orientation=landscape`,
+      { headers: { Authorization: key } }
+    );
+    if (res2.ok) {
+      const data2 = await res2.json();
+      if (data2.photos?.length > 0) {
+        const photo = data2.photos[Math.floor(Math.random() * data2.photos.length)];
+        console.log(`  Pexels (broad): "${photo.alt || simpler}" by ${photo.photographer}`);
+        return photo.src.landscape || photo.src.large;
       }
     }
-  } catch {}
+  } catch (err) {
+    console.log(`  Pexels failed: ${err.message}`);
+  }
 
   console.log(`  No image found for "${query}"`);
   return '';
