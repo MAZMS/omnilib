@@ -72,6 +72,7 @@ function showPanel() {
   renderTable();
   loadFeedbackBadge();
   loadSubsBadge();
+  loadBlogStats();
 }
 
 // --- Tabs ---
@@ -80,6 +81,7 @@ function switchTab(tabId) {
   document.querySelectorAll('.admin-tab-content').forEach(c => c.style.display = 'none');
   document.getElementById('tab-' + tabId).style.display = '';
 
+  if (tabId === 'blog') loadBlogStats();
   if (tabId === 'subscribers') loadSubscribers();
   if (tabId === 'submissions') loadSubmissions();
   if (tabId === 'feedback') loadFeedback();
@@ -428,7 +430,7 @@ function renderFeedbackList() {
 }
 
 function escapeHtml(s) {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function timeAgo(date) {
@@ -459,8 +461,188 @@ async function deleteFeedback(id) {
   loadFeedbackBadge();
 }
 
+// --- Blog Traffic ---
+let blogStatsData = { totals: { posts: 0, published: 0, totalViews: 0 }, topPosts: [], byCategory: [], daily: {} };
+let blogChartPeriod = 30;
+const blogCategoryLabels = { 'ai-news': 'AI News', 'tool-launches': 'Tool Launches', 'tutorials': 'Tutorials', 'industry': 'Industry', 'research': 'Research' };
+
+async function loadBlogStats() {
+  try {
+    const res = await fetch('/api/admin/blog-stats', { headers: { 'Authorization': `Bearer ${adminKey}` } });
+    if (res.ok) blogStatsData = await res.json();
+  } catch {}
+  renderBlogCards();
+  renderBlogChart();
+  renderBlogTopPosts('');
+  renderBlogToday();
+  renderBlogCategories();
+}
+
+function blogViewsInLastDays(days) {
+  let sum = 0;
+  for (let i = 0; i < days; i++) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const day = blogStatsData.daily[d.toISOString().split('T')[0]];
+    if (day) sum += day.blogViews || 0;
+  }
+  return sum;
+}
+
+function renderBlogCards() {
+  const t = blogStatsData.totals;
+  const today = blogViewsInLastDays(1);
+  const week = blogViewsInLastDays(7);
+  const avg = t.published > 0 ? Math.round(t.totalViews / t.published) : 0;
+  document.getElementById('blog-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-value">${formatNum(t.published)}</div><div class="stat-label">Published Posts</div></div>
+    <div class="stat-card"><div class="stat-value">${formatNum(t.totalViews)}</div><div class="stat-label">All-Time Views</div></div>
+    <div class="stat-card"><div class="stat-value">${formatNum(today)}</div><div class="stat-label">Views Today</div></div>
+    <div class="stat-card"><div class="stat-value">${formatNum(week)}</div><div class="stat-label">Views (7D)</div></div>
+    <div class="stat-card"><div class="stat-value">${formatNum(avg)}</div><div class="stat-label">Avg Views / Post</div></div>
+  `;
+}
+
+function setBlogPeriod(p, btn) {
+  blogChartPeriod = parseInt(p);
+  document.querySelectorAll('#blog-period-pills button').forEach(b => { b.style.background = 'none'; b.style.color = '#888'; });
+  btn.style.background = '#f5f5f5'; btn.style.color = '#0a0a0a';
+  renderBlogChart();
+}
+
+function renderBlogChart() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const dates = [];
+  for (let i = blogChartPeriod - 1; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); dates.push(d.toISOString().split('T')[0]); }
+
+  const points = dates.map(date => ({ date, value: (blogStatsData.daily[date] || {}).blogViews || 0 }));
+  const maxVal = Math.max(...points.map(p => p.value), 1);
+  const allZero = points.every(p => p.value === 0);
+  const showEvery = points.length <= 7 ? 1 : points.length <= 30 ? 5 : 10;
+  const gridColor = isDark ? '#333' : '#ddd';
+
+  const chartArea = document.getElementById('blog-chart-area');
+  if (!chartArea) return;
+
+  let html = '<div style="position:absolute;top:0;left:40px;right:0;bottom:28px;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none">';
+  for (let i = 0; i <= 3; i++) {
+    const yVal = allZero ? '0' : formatNum(Math.round(maxVal * (1 - i / 3)));
+    html += `<div style="border-top:1px dashed ${gridColor};position:relative"><span style="position:absolute;right:100%;top:-8px;padding-right:6px;font-size:10px;color:#888;white-space:nowrap">${i === 3 ? '0' : yVal}</span></div>`;
+  }
+  html += '</div>';
+
+  html += '<div style="display:flex;align-items:flex-end;gap:2px;height:100%;padding-left:40px;position:relative;z-index:1">';
+  points.forEach((p, i) => {
+    const pct = allZero ? 0 : (p.value / maxVal * 100);
+    const barH = pct > 0 ? pct.toFixed(1) + '%' : '4px';
+    const barOpacity = p.value > 0 ? 1 : 0.15;
+    const showLabel = i % showEvery === 0 || i === points.length - 1;
+    html += `<div style="flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end;min-width:0">
+      <div style="width:100%;max-width:36px;height:${barH};border-radius:4px 4px 0 0;background:linear-gradient(180deg,#16a34a,#2563eb);opacity:${barOpacity};cursor:pointer;transition:height 400ms ease" title="${p.value} views - ${p.date}"></div>
+      <span style="font-size:${points.length > 14 ? '8' : '10'}px;color:#888;margin-top:6px;white-space:nowrap">${showLabel ? p.date.slice(5) : ''}</span>
+    </div>`;
+  });
+  html += '</div>';
+
+  if (allZero) {
+    html += `<div style="position:absolute;top:45%;left:50%;transform:translate(-50%,-50%);color:#666;font-size:14px;text-align:center;pointer-events:none;z-index:2">
+      <div style="font-size:32px;margin-bottom:8px">📰</div>
+      No blog view data yet<br><span style="font-size:12px">Daily tracking starts with this deploy — views will appear as readers arrive</span>
+    </div>`;
+  }
+
+  chartArea.setAttribute('style', 'height:240px;position:relative;');
+  chartArea.innerHTML = html;
+}
+
+function renderBlogTopPosts(query) {
+  const q = (query || '').toLowerCase();
+  const posts = blogStatsData.topPosts || [];
+  const filtered = q ? posts.filter(p => p.title.toLowerCase().includes(q) || p.slug.includes(q)) : posts;
+  const maxViews = posts[0] ? posts[0].views : 1;
+
+  document.getElementById('blog-posts-count').textContent = q ? `${filtered.length} of ${posts.length}` : `top ${posts.length}`;
+  document.getElementById('blog-top-posts').innerHTML = filtered.map(p => {
+    const rank = posts.indexOf(p) + 1;
+    const barW = maxViews > 0 ? Math.max((p.views / maxViews * 100), 2) : 2;
+    const isTop3 = rank <= 3;
+    const date = new Date(p.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #252525;font-size:12px">
+      <span style="width:28px;height:28px;border-radius:999px;background:${isTop3 ? 'linear-gradient(135deg,#16a34a,#2563eb)' : '#252525'};color:${isTop3 ? '#fff' : '#aaa'};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0">${rank}</span>
+      <a href="/blog/${p.slug}" target="_blank" rel="noopener" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:inherit;text-decoration:none" title="${escapeHtml(p.title)}">${escapeHtml(p.title)}</a>
+      <span style="font-size:10px;color:#888;flex-shrink:0">${date}</span>
+      <div style="width:60px;height:16px;background:#252525;border-radius:3px;overflow:hidden;flex-shrink:0">
+        <div style="height:100%;width:${barW}%;background:#16a34a;border-radius:3px"></div>
+      </div>
+      <span style="font-weight:700;min-width:36px;text-align:right;font-variant-numeric:tabular-nums;font-size:11px">${formatNum(p.views)}</span>
+    </div>`;
+  }).join('') || '<p style="color:#666;padding:20px 0;text-align:center">No posts yet</p>';
+}
+
+function filterBlogPosts() {
+  renderBlogTopPosts(document.getElementById('blog-posts-search').value.trim());
+}
+
+function renderBlogToday() {
+  const today = new Date().toISOString().split('T')[0];
+  const topPosts = (blogStatsData.daily[today] || {}).topPosts || {};
+  const entries = Object.entries(topPosts).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const el = document.getElementById('blog-today-posts');
+  if (entries.length === 0) {
+    el.innerHTML = '<p style="color:#666;font-size:13px">No reads yet today. Check back later.</p>';
+    return;
+  }
+  el.innerHTML = entries.map(([slug, views], i) => {
+    const post = (blogStatsData.topPosts || []).find(p => p.slug === slug);
+    const title = post ? post.title : slug;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #252525;font-size:13px">
+      <span style="font-weight:700;color:#888;width:20px">${i + 1}</span>
+      <a href="/blog/${slug}" target="_blank" rel="noopener" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:inherit;text-decoration:none">${escapeHtml(title)}</a>
+      <span style="font-weight:600;flex-shrink:0">${views}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderBlogCategories() {
+  const cats = blogStatsData.byCategory || [];
+  const el = document.getElementById('blog-categories');
+  if (cats.length === 0) {
+    el.innerHTML = '<p style="color:#666;font-size:13px">No posts yet.</p>';
+    return;
+  }
+  const maxViews = Math.max(...cats.map(c => c.views), 1);
+  el.innerHTML = cats.map(c => {
+    const pct = Math.max((c.views / maxViews * 100), 2);
+    return `<div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;color:#ccc">
+        <span>${blogCategoryLabels[c.category] || c.category} <span style="color:#888">(${c.posts} posts)</span></span>
+        <span style="font-weight:700">${formatNum(c.views)}</span>
+      </div>
+      <div style="height:20px;background:#252525;border-radius:6px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;border-radius:6px;background:linear-gradient(90deg,#16a34a,#2563eb);transition:width 500ms ease"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function generateBlogPost() {
+  const btn = document.getElementById('generate-post-btn');
+  if (!confirm('Generate a new blog post now?')) return;
+  btn.textContent = 'Generating...';
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/admin/generate-blog', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${adminKey}` }
+    });
+    btn.textContent = res.ok ? 'Started! Check back in ~1 min' : 'Failed - try again';
+  } catch {
+    btn.textContent = 'Failed - try again';
+  }
+  setTimeout(() => { btn.textContent = '+ Generate Post Now'; btn.disabled = false; }, 5000);
+}
+
 // --- Site Traffic ---
-let trafficStats = { daily: {}, total: { views: 0, toolViews: 0, affiliateClicks: 0, compareViews: 0, searches: 0 } };
+let trafficStats = { daily: {}, total: { views: 0, toolViews: 0, affiliateClicks: 0, compareViews: 0, searches: 0, blogViews: 0 } };
 let chartPeriod = 7;
 let chartMetric = 'views';
 
@@ -513,7 +695,7 @@ function renderTrafficChart() {
   const showEvery = points.length <= 7 ? 1 : points.length <= 30 ? 5 : 10;
   const gridColor = isDark ? '#333' : '#ddd';
   const barGrad = 'linear-gradient(180deg, #2563eb, #7c3aed)';
-  const metricName = { views: 'Views', toolViews: 'Tool Views', affiliateClicks: 'Clicks', searches: 'Searches' }[chartMetric];
+  const metricName = { views: 'Views', blogViews: 'Blog Views', toolViews: 'Tool Views', affiliateClicks: 'Clicks', searches: 'Searches' }[chartMetric];
 
   const chartArea = document.getElementById('chart-area');
   if (!chartArea) return;
@@ -558,12 +740,13 @@ function renderTrafficCards() {
   const dates = [];
   for (let i = numDays - 1; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); dates.push(d.toISOString().split('T')[0]); }
 
-  let pViews = 0, pToolViews = 0, pClicks = 0, pSearches = 0;
-  dates.forEach(date => { const d = trafficStats.daily[date] || {}; pViews += d.views || 0; pToolViews += d.toolViews || 0; pClicks += d.affiliateClicks || 0; pSearches += d.searches || 0; });
+  let pViews = 0, pBlogViews = 0, pToolViews = 0, pClicks = 0, pSearches = 0;
+  dates.forEach(date => { const d = trafficStats.daily[date] || {}; pViews += d.views || 0; pBlogViews += d.blogViews || 0; pToolViews += d.toolViews || 0; pClicks += d.affiliateClicks || 0; pSearches += d.searches || 0; });
   const periodLabel = chartPeriod === 'all' ? '30 Days' : chartPeriod + 'D';
 
   document.getElementById('traffic-stats').innerHTML = `
     <div class="stat-card"><div class="stat-value">${formatNum(pViews)}</div><div class="stat-label">Views (${periodLabel})</div></div>
+    <div class="stat-card"><div class="stat-value">${formatNum(pBlogViews)}</div><div class="stat-label">Blog Views</div></div>
     <div class="stat-card"><div class="stat-value">${formatNum(pToolViews)}</div><div class="stat-label">Tool Views</div></div>
     <div class="stat-card"><div class="stat-value">${formatNum(pClicks)}</div><div class="stat-label">Affiliate Clicks</div></div>
     <div class="stat-card"><div class="stat-value">${formatNum(pSearches)}</div><div class="stat-label">Searches</div></div>
@@ -911,6 +1094,9 @@ function bindEvents() {
 
   // Add tool
   document.getElementById('add-tool-btn').addEventListener('click', () => openModal('Add Tool', null));
+
+  // Generate blog post
+  document.getElementById('generate-post-btn').addEventListener('click', generateBlogPost);
 
   // Modal
   document.getElementById('modal-close').addEventListener('click', closeModal);

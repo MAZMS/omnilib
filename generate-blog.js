@@ -263,7 +263,7 @@ FORMAT:
 - NO h1 tags (page template handles it)
 - 4-6 subheadings (h2) with keywords front-loaded
 - Use <strong> to highlight key terms and stats
-- Include 1-2 relevant internal links like <a href="/blog">more on our blog</a>
+- Include 1-2 relevant internal links like <a href="/">more on our blog</a> or <a href="/tools">our AI tools directory</a>
 
 SEO:
 - Front-load primary keyword in first paragraph

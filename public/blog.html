@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI & Tech News Blog — Omnilib</title>
+  <title>Omnilib — AI & Tech News</title>
   <meta name="description" content="Latest AI and tech news, trends, and insights. Stay updated on artificial intelligence breakthroughs, tool launches, and industry analysis.">
   <meta name="robots" content="index, follow">
-  <link rel="canonical" href="https://omnilib.app/blog">
-  <meta property="og:title" content="AI & Tech News Blog — Omnilib">
+  <link rel="canonical" href="https://omnilib.app/">
+  <meta property="og:title" content="Omnilib — AI & Tech News">
   <meta property="og:description" content="Latest AI and tech news, trends, and insights. Stay updated on artificial intelligence breakthroughs, tool launches, and industry analysis.">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://omnilib.app/blog">
+  <meta property="og:url" content="https://omnilib.app/">
   <meta property="og:image" content="https://omnilib.app/images/og-default.png">
   <meta property="og:site_name" content="Omnilib">
   <link rel="alternate" type="application/rss+xml" title="Omnilib Blog RSS" href="https://omnilib.app/blog/rss.xml">
@@ -22,7 +22,7 @@
     "@type": "Blog",
     "name": "Omnilib AI & Tech News",
     "description": "Latest AI and tech news, trends, and insights",
-    "url": "https://omnilib.app/blog",
+    "url": "https://omnilib.app/",
     "publisher": {
       "@type": "Organization",
       "name": "Omnilib",
@@ -41,8 +41,8 @@
         <span class="logo-icon">📚</span> Omnilib
       </a>
       <nav class="nav">
-        <a href="/" class="nav-link">Home</a>
-        <a href="/blog" class="nav-link active">Blog</a>
+        <a href="/" class="nav-link active">Home</a>
+        <a href="/tools" class="nav-link">Tools</a>
         <a href="/compare" class="nav-link">Compare</a>
         <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
           <span class="theme-icon" id="theme-icon">🌙</span>
@@ -63,6 +63,7 @@
     </section>
 
     <section class="blog-filters">
+      <div id="blog-tag-indicator" style="display:none;text-align:center;margin-bottom:14px;font-size:13px;color:var(--text-secondary)"></div>
       <div class="pill-group" id="blog-category-filters">
         <button class="pill active" data-category="">All</button>
         <button class="pill" data-category="ai-news">AI News</button>
@@ -82,6 +83,39 @@
     <div class="blog-empty" id="blog-empty" style="display:none">
       <p>No posts yet. Check back soon!</p>
     </div>
+
+    <!-- Newsletter -->
+    <section class="newsletter-section">
+      <div class="newsletter-inner">
+        <h2 class="newsletter-title">Stay in the loop</h2>
+        <p class="newsletter-desc">Get the latest AI news and insights delivered to your inbox every week.</p>
+        <div class="newsletter-form" id="nl-form">
+          <input type="email" id="nl-email" class="newsletter-input" placeholder="you@email.com">
+          <button id="nl-btn" class="newsletter-btn">Subscribe</button>
+        </div>
+        <p id="nl-msg" style="display:none;font-size:13px;margin-top:12px"></p>
+        <script>
+        document.getElementById('nl-btn').addEventListener('click',function(){
+          var email=document.getElementById('nl-email').value.trim();
+          var btn=document.getElementById('nl-btn');
+          var msg=document.getElementById('nl-msg');
+          if(!email||!email.includes('@')){msg.style.display='block';msg.style.color='#ea580c';msg.textContent='Please enter a valid email.';return;}
+          btn.textContent='Subscribing...';btn.disabled=true;
+          fetch('/api/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email})})
+          .then(function(r){return r.json()}).then(function(d){
+            msg.style.display='block';
+            if(d.ok){
+              msg.style.color='#16a34a';
+              msg.textContent=d.already?'You\'re already subscribed!':'Thanks for subscribing! We\'ll keep you in the loop.';
+              document.getElementById('nl-email').value='';
+            }else{msg.style.color='#ea580c';msg.textContent=d.error||'Something went wrong.';}
+            btn.textContent='Subscribe';btn.disabled=false;
+          }).catch(function(){msg.style.display='block';msg.style.color='#ea580c';msg.textContent='Failed to connect.';btn.textContent='Subscribe';btn.disabled=false;});
+        });
+        document.getElementById('nl-email').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('nl-btn').click();});
+        </script>
+      </div>
+    </section>
   </main>
 
   <footer class="footer">
@@ -89,11 +123,11 @@
       <div class="footer-top">
         <div class="footer-brand">
           <span class="logo"><span class="logo-icon">📚</span> Omnilib</span>
-          <p>The open library of AI tools.<br>Curated with care.</p>
+          <p>Daily AI &amp; tech news.<br>Written to keep you ahead.</p>
         </div>
         <div class="footer-links">
           <a href="/">Home</a>
-          <a href="/blog">Blog</a>
+          <a href="/tools">Tools</a>
           <a href="/compare">Compare</a>
         </div>
       </div>
@@ -103,6 +137,6 @@
     </div>
   </footer>
 
-  <script src="/js/blog.js?v=1"></script>
+  <script src="/js/blog.js?v=2"></script>
 </body>
 </html>

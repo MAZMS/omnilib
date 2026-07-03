@@ -163,7 +163,7 @@ async function loadTool() {
           <section class="detail-section">
             <h2 class="detail-section-title">Related Tags</h2>
             <div class="detail-tags">
-              ${tool.tags.map(t => `<a href="/?q=${encodeURIComponent(t)}" class="detail-tag">${t}</a>`).join('')}
+              ${tool.tags.map(t => `<a href="/tools?q=${encodeURIComponent(t)}" class="detail-tag">${t}</a>`).join('')}
             </div>
           </section>` : ''}
         </div>

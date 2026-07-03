@@ -1,7 +1,7 @@
 # Omnilib — Rules for Claude Code
 
-Public AI tools directory at **omnilib.app** with affiliate links.
-Users search and browse AI tools, click through affiliate links, owner earns commissions.
+AI & tech news blog at **omnilib.app** (the home page), with an AI tools directory at `/tools` earning affiliate commissions.
+The blog is the focus: daily AI-generated posts, SEO traffic, newsletter. Tools directory is secondary.
 
 ## The Operator
 
@@ -16,34 +16,49 @@ Maz (MAZMS). Solo founder. Works fast, thinks visually, delegates everything.
 
 ```
 omnilib/
-├── server.js           # Express server — API routes, affiliate redirects, admin auth, SEO injection
+├── server.js           # Express server — routes, affiliate redirects, admin auth, SEO injection, blog cron
+├── db.js               # PostgreSQL connection, queries, table init (blog_posts, site_stats, ...)
+├── generate-blog.js    # Daily AI blog post generation (OpenAI)
+├── generate-bulk.js    # Bulk backdated post generation
 ├── data/
-│   └── tools.json      # All AI tool entries — the entire "database"
+│   └── tools.json      # Static tools catalog (committed to git)
 ├── public/
-│   ├── index.html      # Main page — hero, search, card grid
+│   ├── blog.html       # HOME PAGE — blog listing, search, category filters, newsletter
+│   ├── post.html       # Blog post template (server injects content + meta)
+│   ├── index.html      # Tools directory (served at /tools)
 │   ├── tool.html       # Tool detail page (server injects meta tags for SEO)
-│   ├── admin.html      # Admin panel — add/edit/delete tools
+│   ├── compare.html    # Tool comparison page
+│   ├── admin.html      # Admin panel — Blog traffic dashboard (default tab) + tools CRUD
 │   ├── css/style.css   # Full design system, single file
 │   └── js/
-│       ├── app.js      # Main page: search, filter, render cards
+│       ├── blog.js     # Home/blog: posts, filters, AI search
+│       ├── app.js      # Tools page: search, filter, render cards
 │       ├── tool.js     # Tool detail page logic
-│       └── admin.js    # Admin CRUD logic
-├── db.js               # PostgreSQL connection, queries, table init
-├── package.json        # express + multer + pg — no build step
-├── .env.example        # ADMIN_KEY, PORT, DATABASE_URL
+│       ├── compare.js  # Compare page logic
+│       └── admin.js    # Admin dashboard + CRUD logic
+├── package.json        # express + multer + pg + node-cron — no build step
+├── .env.example        # ADMIN_KEY, PORT, DATABASE_URL, OPENAI_API_KEY
 └── CLAUDE.md           # This file
 ```
 
 **Key routes in server.js:**
+- `GET /` — **blog listing (home page)**, serves blog.html
+- `GET /blog/:slug` — blog post page with SEO meta injection (increments views + daily blog stats)
+- `GET /blog` — 301 redirect to `/` (legacy URL)
+- `GET /blog/rss.xml` — RSS feed
+- `GET /api/blog` — list/search blog posts (?page=, ?category=, ?tag=, ?q=)
+- `GET /api/blog/ai-search` — AI-powered blog search
+- `GET /tools` — tools directory (formerly the home page), serves index.html
 - `GET /api/tools` — list/search/filter tools (?q=, ?category=, ?pricing=, ?tag=, ?sort=)
-- `GET /api/tools/:slug` — single tool data
-- `GET /api/categories` — category list
 - `GET /go/:slug` — **affiliate redirect** (increments clicks, 302 to affiliateUrl)
 - `GET /tool/:slug` — tool detail page with SEO meta injection
-- `POST/PUT/DELETE /api/admin/tools` — admin CRUD (Bearer auth)
-- `POST /api/admin/upload` — image upload
+- `GET /api/admin/blog-stats` — blog traffic dashboard data (Bearer auth)
+- `POST/PUT/DELETE /api/admin/blog` + `/api/admin/tools` — admin CRUD (Bearer auth)
+- `POST /api/admin/generate-blog` — trigger AI post generation
 - `GET /sitemap.xml` — auto-generated sitemap
 - `GET /health` — health check
+
+**Blog traffic tracking:** `blog_posts.views` (all-time per post) + `site_stats.blog_views`/`top_posts` (daily). Admin panel opens on the Blog tab with the traffic dashboard.
 
 ## Invariants
 

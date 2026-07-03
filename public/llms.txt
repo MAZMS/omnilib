@@ -1,30 +1,31 @@
 # Omnilib
-> The world's largest curated directory of AI tools. Search, compare, and discover 850+ AI SaaS products across chatbots, image generation, coding, video, audio, writing, productivity, research, design, and marketing.
+> Daily AI & tech news, insights, and analysis — plus a curated directory of 850+ AI tools. The blog is the heart of the site, covering AI model releases, tool launches, industry trends, regulation, and practical guides.
 
-## What this site offers
-- Comprehensive directory of 850+ AI tools
+## Blog (home page)
+- Daily AI & tech news at / (individual posts at /blog/{slug})
+- Topics: AI news, tool launches, tutorials, industry analysis, research
+- RSS feed at /blog/rss.xml
+- Covers: AI model releases, tool comparisons, industry trends, regulation, practical guides
+
+## AI Tools Directory
+- Comprehensive directory of 850+ AI tools at /tools
 - Each tool has: name, description, pricing, rating, category, tags, screenshots
 - Tools are organized by category and searchable by name, description, or tag
 - Affiliate links for each tool at /go/{slug}
 - Tool detail pages at /tool/{slug}
 
-## Blog
-- Daily AI & tech news blog at /blog
-- Topics: AI news, tool launches, tutorials, industry analysis, research
-- RSS feed at /blog/rss.xml
-- Covers: AI model releases, tool comparisons, industry trends, regulation, practical guides
-
 ## API
+- GET /api/blog - List blog posts (supports ?page=, ?category=, ?tag=, ?q=)
+- GET /api/blog/{slug} - Get single blog post
 - GET /api/tools - List all tools (supports ?q=, ?category=, ?pricing=, ?tag=, ?sort=)
 - GET /api/tools/{slug} - Get single tool details
 - GET /api/categories - List all categories
-- GET /api/blog - List blog posts (supports ?page=, ?category=, ?tag=)
-- GET /api/blog/{slug} - Get single blog post
 - GET /sitemap.xml - Full sitemap
 - GET /blog/rss.xml - Blog RSS feed
 
 ## Categories
-Chatbots, Image Generation, Writing, Coding, Video, Audio & Music, Productivity, Research, Design, Marketing
+Blog: AI News, Tool Launches, Tutorials, Industry, Research
+Tools: Chatbots, Image Generation, Writing, Coding, Video, Audio & Music, Productivity, Research, Design, Marketing
 
 ## Contact
 Website: https://omnilib.app

@@ -88,8 +88,18 @@ app.get('/llms.txt', (req, res) => {
 // Serve .well-known directory
 app.use('/.well-known', express.static(path.join(__dirname, 'public', '.well-known')));
 
-// Static files
-app.use(express.static(path.join(__dirname, 'public')));
+// Static files (index:false so / is routed to the blog, not index.html)
+app.use(express.static(path.join(__dirname, 'public'), { index: false }));
+
+// --- Home page: the blog ---
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'blog.html'));
+});
+
+// --- Tools directory (formerly the home page) ---
+app.get('/tools', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // Image upload config
 const storage = multer.diskStorage({
@@ -564,7 +574,7 @@ app.get('/blog/rss.xml', async (req, res) => {
     let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
     xml += '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">\n<channel>\n';
     xml += '  <title>Omnilib AI &amp; Tech News</title>\n';
-    xml += '  <link>https://omnilib.app/blog</link>\n';
+    xml += '  <link>https://omnilib.app/</link>\n';
     xml += '  <description>Latest AI and tech news, trends, and insights.</description>\n';
     xml += '  <language>en-us</language>\n';
     xml += '  <atom:link href="https://omnilib.app/blog/rss.xml" rel="self" type="application/rss+xml"/>\n';
@@ -587,26 +597,25 @@ app.get('/blog/rss.xml', async (req, res) => {
   }
 });
 
-// --- Blog listing page ---
+// --- Legacy blog listing URL → home (blog is the home page now) ---
 
 app.get('/blog', (req, res) => {
-  trackPageEvent('views');
-  res.sendFile(path.join(__dirname, 'public', 'blog.html'));
+  const qs = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : '';
+  res.redirect(301, '/' + qs);
 });
 
 // --- Blog post detail page (SEO-injected) ---
 
 app.get('/blog/:slug', async (req, res) => {
-  trackPageEvent('views');
-
   let html = fs.readFileSync(path.join(__dirname, 'public', 'post.html'), 'utf8');
 
   try {
     const post = await db.getBlogPost(req.params.slug);
 
     if (post) {
-      // Track view (fire and forget)
+      // Track view (fire and forget): all-time per post + daily traffic stats
       db.incrementBlogViews(req.params.slug).catch(() => {});
+      trackPageEvent('blogViews', post.slug);
 
       const categoryLabels = { 'ai-news': 'AI News', 'tool-launches': 'Tool Launches', 'tutorials': 'Tutorials', 'industry': 'Industry', 'research': 'Research' };
       const catLabel = categoryLabels[post.category] || post.category;
@@ -641,7 +650,7 @@ app.get('/blog/:slug', async (req, res) => {
       html = html.replace('{{FEATURED_IMAGE_HTML}}', featuredImg);
 
       const tagsHtml = (post.tags || []).map(t =>
-        `<a href="/blog?tag=${encodeURIComponent(t)}" class="post-tag">${t}</a>`
+        `<a href="/?tag=${encodeURIComponent(t)}" class="post-tag">${t}</a>`
       ).join('');
       html = html.replace('{{TAGS_HTML}}', tagsHtml);
 
@@ -677,7 +686,7 @@ app.get('/blog/:slug', async (req, res) => {
       html = html.replace(/\{\{POST_TITLE\}\}/g, 'Post Not Found');
       html = html.replace(/\{\{EXCERPT\}\}/g, '');
       html = html.replace(/\{\{BREADCRUMB\}\}/g, 'Not Found');
-      html = html.replace('{{CONTENT}}', '<p>This post could not be found. <a href="/blog">Back to blog</a>.</p>');
+      html = html.replace('{{CONTENT}}', '<p>This post could not be found. <a href="/">Back to home</a>.</p>');
       html = html.replace('{{FEATURED_IMAGE_HTML}}', '');
       html = html.replace('{{SHARE_TITLE}}', '');
       html = html.replace('{{TAGS_HTML}}', '');
@@ -733,6 +742,18 @@ app.delete('/api/admin/blog/:id', adminAuth, async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete post' });
+  }
+});
+
+// --- Admin: Blog traffic stats ---
+
+app.get('/api/admin/blog-stats', adminAuth, async (req, res) => {
+  try {
+    const stats = await db.getBlogStats();
+    res.json(stats);
+  } catch (err) {
+    console.error('Blog stats error:', err.message);
+    res.json({ totals: { posts: 0, published: 0, totalViews: 0 }, topPosts: [], byCategory: [], daily: {} });
   }
 });
 
@@ -798,20 +819,20 @@ app.get('/sitemap.xml', async (req, res) => {
   let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
   xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
   xml += `  <url><loc>${base}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>\n`;
-  xml += `  <url><loc>${base}/blog</loc><changefreq>daily</changefreq><priority>0.9</priority></url>\n`;
-  xml += `  <url><loc>${base}/compare</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>\n`;
+  xml += `  <url><loc>${base}/tools</loc><changefreq>daily</changefreq><priority>0.8</priority></url>\n`;
+  xml += `  <url><loc>${base}/compare</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>\n`;
 
-  for (const tool of data.tools) {
-    xml += `  <url><loc>${base}/tool/${tool.slug}</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>\n`;
-  }
-
-  // Blog posts
+  // Blog posts (the main content now)
   try {
-    const blogSlugs = await db.getRecentBlogSlugs(200);
+    const blogSlugs = await db.getRecentBlogSlugs(1000);
     for (const slug of blogSlugs) {
-      xml += `  <url><loc>${base}/blog/${slug}</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>\n`;
+      xml += `  <url><loc>${base}/blog/${slug}</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>\n`;
     }
   } catch {}
+
+  for (const tool of data.tools) {
+    xml += `  <url><loc>${base}/tool/${tool.slug}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>\n`;
+  }
 
   xml += '</urlset>';
   res.type('application/xml').send(xml);

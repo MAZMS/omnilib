@@ -113,6 +113,10 @@ async function initDB() {
       CREATE INDEX IF NOT EXISTS idx_blog_posts_slug ON blog_posts(slug);
       CREATE INDEX IF NOT EXISTS idx_blog_posts_status ON blog_posts(status);
       CREATE INDEX IF NOT EXISTS idx_blog_posts_published ON blog_posts(published_at DESC);
+
+      ALTER TABLE site_stats ADD COLUMN IF NOT EXISTS blog_views INT DEFAULT 0;
+      ALTER TABLE site_stats ADD COLUMN IF NOT EXISTS top_posts JSONB DEFAULT '{}';
+      ALTER TABLE site_stats_total ADD COLUMN IF NOT EXISTS blog_views BIGINT DEFAULT 0;
     `);
     console.log('Database tables initialized');
   } finally {
@@ -199,25 +203,26 @@ async function deleteFeedback(id) {
 // --- Site Stats ---
 async function trackEvent(type, extra) {
   const today = new Date().toISOString().split('T')[0];
-  const colMap = { views: 'views', toolViews: 'tool_views', affiliateClicks: 'affiliate_clicks', compareViews: 'compare_views', searches: 'searches' };
+  const colMap = { views: 'views', toolViews: 'tool_views', affiliateClicks: 'affiliate_clicks', compareViews: 'compare_views', searches: 'searches', blogViews: 'blog_views' };
   const col = colMap[type];
   if (!col) return;
 
-  // Upsert daily
-  if (type === 'toolViews' && extra) {
+  // Upsert daily; toolViews/blogViews also keep a per-slug counter in a JSONB column
+  const jsonCol = { toolViews: 'top_tools', blogViews: 'top_posts' }[type];
+  if (jsonCol && extra) {
     await pool.query(`
-      INSERT INTO site_stats (date, ${col}, top_tools)
+      INSERT INTO site_stats (date, ${col}, ${jsonCol})
       VALUES ($1, 1, $2::jsonb)
       ON CONFLICT (date) DO UPDATE SET
         ${col} = site_stats.${col} + 1,
-        top_tools = (
+        ${jsonCol} = (
           SELECT jsonb_set(
-            COALESCE(site_stats.top_tools, '{}'),
+            COALESCE(site_stats.${jsonCol}, '{}'),
             $3::text[],
-            to_jsonb(COALESCE((site_stats.top_tools->>$4)::int, 0) + 1)
+            to_jsonb(COALESCE((site_stats.${jsonCol}->>$4)::int, 0) + 1)
           )
         )
-    `, [today, JSON.stringify({ [extra]: 1 }), `{${extra}}`, extra]);
+    `, [today, JSON.stringify({ [extra]: 1 }), [extra], extra]);
   } else {
     await pool.query(`
       INSERT INTO site_stats (date, ${col}) VALUES ($1, 1)
@@ -244,7 +249,9 @@ async function getSiteStats() {
       affiliateClicks: row.affiliate_clicks,
       compareViews: row.compare_views,
       searches: row.searches,
-      topTools: row.top_tools || {}
+      blogViews: row.blog_views || 0,
+      topTools: row.top_tools || {},
+      topPosts: row.top_posts || {}
     };
   }
 
@@ -255,8 +262,9 @@ async function getSiteStats() {
       toolViews: Number(total.tool_views),
       affiliateClicks: Number(total.affiliate_clicks),
       compareViews: Number(total.compare_views),
-      searches: Number(total.searches)
-    } : { views: 0, toolViews: 0, affiliateClicks: 0, compareViews: 0, searches: 0 }
+      searches: Number(total.searches),
+      blogViews: Number(total.blog_views || 0)
+    } : { views: 0, toolViews: 0, affiliateClicks: 0, compareViews: 0, searches: 0, blogViews: 0 }
   };
 }
 
@@ -416,6 +424,51 @@ async function incrementBlogViews(slug) {
   await pool.query('UPDATE blog_posts SET views = views + 1 WHERE slug = $1', [slug]);
 }
 
+async function getBlogStats() {
+  const { rows: [totals] } = await pool.query(`
+    SELECT COUNT(*)::int AS posts,
+           COUNT(*) FILTER (WHERE status = 'published')::int AS published,
+           COALESCE(SUM(views), 0)::bigint AS total_views
+    FROM blog_posts
+  `);
+
+  const { rows: topPosts } = await pool.query(`
+    SELECT slug, title, category, views, published_at
+    FROM blog_posts
+    WHERE status = 'published'
+    ORDER BY views DESC, published_at DESC
+    LIMIT 100
+  `);
+
+  const { rows: byCategory } = await pool.query(`
+    SELECT category, COUNT(*)::int AS posts, COALESCE(SUM(views), 0)::bigint AS views
+    FROM blog_posts
+    WHERE status = 'published'
+    GROUP BY category
+    ORDER BY views DESC
+  `);
+
+  const { rows: daily } = await pool.query(
+    "SELECT date, blog_views, top_posts FROM site_stats WHERE date >= NOW() - INTERVAL '90 days' ORDER BY date DESC"
+  );
+  const dailyMap = {};
+  for (const row of daily) {
+    const d = row.date.toISOString().split('T')[0];
+    dailyMap[d] = { blogViews: row.blog_views || 0, topPosts: row.top_posts || {} };
+  }
+
+  return {
+    totals: {
+      posts: totals.posts,
+      published: totals.published,
+      totalViews: Number(totals.total_views)
+    },
+    topPosts,
+    byCategory: byCategory.map(c => ({ category: c.category, posts: c.posts, views: Number(c.views) })),
+    daily: dailyMap
+  };
+}
+
 async function getRecentBlogSlugs(limit = 50) {
   const { rows } = await pool.query(
     "SELECT slug FROM blog_posts WHERE status = 'published' ORDER BY published_at DESC LIMIT $1",
@@ -450,5 +503,6 @@ module.exports = {
   updateBlogPost,
   deleteBlogPost,
   incrementBlogViews,
+  getBlogStats,
   getRecentBlogSlugs
 };

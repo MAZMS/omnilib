@@ -1,6 +1,7 @@
 // --- Blog listing page ---
 let currentPage = 1;
 let activeCategory = '';
+let activeTag = '';
 let searchQuery = '';
 let searchTimer = null;
 let aiSearchTimer = null;
@@ -12,9 +13,31 @@ const categoryLabels = {
   'research': 'Research'
 };
 
+function renderTagIndicator() {
+  var el = document.getElementById('blog-tag-indicator');
+  if (!el) return;
+  if (activeTag) {
+    el.style.display = '';
+    el.innerHTML = 'Showing posts tagged “<strong>' + activeTag.replace(/</g, '&lt;') + '</strong>” · ' +
+      '<a href="#" id="clear-tag-filter" style="color:var(--accent, #2563eb)">clear</a>';
+    document.getElementById('clear-tag-filter').addEventListener('click', function(e) {
+      e.preventDefault();
+      activeTag = '';
+      currentPage = 1;
+      history.replaceState(null, '', '/');
+      renderTagIndicator();
+      loadPosts();
+    });
+  } else {
+    el.style.display = 'none';
+    el.innerHTML = '';
+  }
+}
+
 async function loadPosts() {
   const params = new URLSearchParams({ page: currentPage, limit: 12 });
   if (activeCategory) params.set('category', activeCategory);
+  if (activeTag) params.set('tag', activeTag);
   if (searchQuery) params.set('q', searchQuery);
 
   try {
@@ -104,9 +127,11 @@ document.getElementById('blog-category-filters').addEventListener('click', funct
   this.querySelectorAll('.pill').forEach(function(p) { p.classList.remove('active'); });
   btn.classList.add('active');
   activeCategory = btn.dataset.category || '';
+  activeTag = '';
   searchQuery = '';
   document.getElementById('blog-search').value = '';
   currentPage = 1;
+  renderTagIndicator();
   loadPosts();
 });
 
@@ -154,5 +179,22 @@ document.getElementById('blog-search').addEventListener('input', function() {
   }
 });
 
-// Init
+// Init — pick up filters from the URL (e.g. /?tag=openai from post tag links)
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  activeTag = params.get('tag') || '';
+  searchQuery = params.get('q') || '';
+  var cat = params.get('category') || '';
+
+  if (searchQuery) document.getElementById('blog-search').value = searchQuery;
+  if (cat) {
+    var pill = document.querySelector('#blog-category-filters .pill[data-category="' + cat + '"]');
+    if (pill) {
+      activeCategory = cat;
+      document.querySelectorAll('#blog-category-filters .pill').forEach(function(p) { p.classList.remove('active'); });
+      pill.classList.add('active');
+    }
+  }
+  renderTagIndicator();
+})();
 loadPosts();
